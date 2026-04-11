@@ -5,7 +5,6 @@ st.set_page_config(page_title="Support Tools", page_icon="🛠", layout="centere
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
 .badge {
@@ -16,147 +15,187 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     border: 1px solid rgba(108,99,255,.25);
     border-radius: 20px; padding: 4px 12px; margin-bottom: 16px;
 }
-h1 { font-size: 38px !important; font-weight: 700 !important; letter-spacing: -.02em; line-height: 1.15 !important; }
-.hero-desc { font-size: 16px; color: #8b8fa8; line-height: 1.7; margin-bottom: 8px; }
-.section-label {
-    font-size: 11px; font-weight: 700; letter-spacing: .1em;
-    text-transform: uppercase; color: #8b8fa8; margin-bottom: 4px;
+.result-box {
+    background: rgba(108,99,255,.08);
+    border: 1px solid rgba(108,99,255,.25);
+    border-radius: 10px; padding: 16px 18px; margin-top: 12px;
 }
-.tool-card {
-    background: #1a1d27; border: 1px solid #2a2d3e;
-    border-radius: 16px; padding: 28px; margin-bottom: 20px;
-    transition: border-color .2s;
+.result-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: #6c63ff; margin-bottom: 6px;
 }
-.tool-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-.tool-desc  { font-size: 14px; color: #8b8fa8; margin: 8px 0 18px; }
-.status-pill {
-    font-size: 11px; font-weight: 600; letter-spacing: .06em;
-    text-transform: uppercase; color: #22c55e;
-    background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.2);
-    border-radius: 20px; padding: 3px 10px;
+.tag {
+    font-size: 11px; font-weight: 600; padding: 3px 10px;
+    border-radius: 4px; text-transform: uppercase; letter-spacing: .05em;
 }
-.demo-frame { border: 1px solid #2a2d3e; border-radius: 10px; overflow: hidden; background: #0f1117; }
-.demo-bar {
-    display: flex; align-items: center; gap: 6px;
-    padding: 8px 14px; background: rgba(255,255,255,.03);
-    border-bottom: 1px solid #2a2d3e;
-}
-.demo-url { font-size: 11px; color: #8b8fa8; margin-left: 6px; font-family: monospace; }
-.demo-body { padding: 20px; }
-.log { font-family: monospace; font-size: 12px; padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; }
-.log-err  { background: rgba(239,68,68,.08); color: #f87171; }
-.log-warn { background: rgba(251,146,60,.08); color: #fb923c; }
-.log-ok   { background: rgba(34,197,94,.08);  color: #4ade80; }
-.analysis {
-    margin-top: 14px; background: rgba(108,99,255,.12);
-    border: 1px solid rgba(108,99,255,.25); border-radius: 8px; padding: 12px 14px;
-}
-.analysis-label { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #6c63ff; margin-bottom: 6px; }
-.ticket { border: 1px solid #2a2d3e; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
-.ticket-id { font-size: 11px; color: #8b8fa8; font-family: monospace; }
-.ticket-body { font-size: 13px; color: #8b8fa8; margin: 6px 0; }
-.ticket-route { font-size: 12px; color: #e8e9f0; }
-.tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: .05em; }
 .tag-esc  { background: rgba(239,68,68,.12); color: #f87171; }
 .tag-dup  { background: rgba(251,146,60,.12); color: #fb923c; }
 .tag-self { background: rgba(34,197,94,.12);  color: #4ade80; }
-.benefit { display: flex; gap: 10px; font-size: 15px; margin-bottom: 10px; }
-.arrow { color: #6c63ff; font-weight: 700; }
-hr-custom { border: none; border-top: 1px solid #2a2d3e; margin: 32px 0; }
+.tag-vague { background: rgba(108,99,255,.12); color: #a78bfa; }
+.footer { text-align: center; font-size: 13px; color: #8b8fa8; margin-top: 40px; line-height: 1.8; }
 </style>
 """, unsafe_allow_html=True)
 
-# Hero
-st.markdown('<div class="badge">⬤ &nbsp;Internal Tooling</div>', unsafe_allow_html=True)
-st.markdown("# Reducing **repeated** support issues")
-st.markdown('<p class="hero-desc">Two lightweight tools built to surface failure patterns faster, route tickets with confidence, and stop the same issues from burning support time every week.</p>', unsafe_allow_html=True)
+# ── Header ──────────────────────────────────────────────────────────────────
+st.markdown('<div class="badge">⬤ &nbsp;Support Tooling Demo</div>', unsafe_allow_html=True)
+st.markdown("## Reducing **repeated** support issues")
+st.markdown(
+    "This is a short demo of tools I built to reduce repeated support issues. "
+    "Instead of handling tickets one by one, these focus on identifying patterns, "
+    "surfacing root causes, and routing issues earlier."
+)
 
 st.markdown("---")
 
-# Benefits
-st.markdown('<p class="section-label">How this helps support teams</p>', unsafe_allow_html=True)
-st.markdown("""
-<div class="benefit"><span class="arrow">→</span> <span><b>Faster triage</b> — pattern detection surfaces root causes in seconds, not hours</span></div>
-<div class="benefit"><span class="arrow">→</span> <span><b>Fewer repeated issues</b> — known patterns are flagged before a ticket queue builds</span></div>
-<div class="benefit"><span class="arrow">→</span> <span><b>Clearer escalation paths</b> — routing logic removes guesswork on who handles what</span></div>
-""", unsafe_allow_html=True)
+# ── Try it instantly ────────────────────────────────────────────────────────
+st.markdown("### Try it instantly")
+st.markdown(
+    "Paste an error or issue below — both tools are pre-filled so you can see "
+    "how they work immediately."
+)
+
+# ── Deployment Debugger ─────────────────────────────────────────────────────
+st.markdown("#### 🔍 Deployment Debugger")
+st.caption("Scans deployment errors for known failure patterns and surfaces the root cause.")
+
+debug_input = st.text_area(
+    "Paste a deployment error or log line:",
+    value="Deployment fails: no process listening on $PORT",
+    height=80,
+    key="debug_input",
+    label_visibility="collapsed",
+)
+
+def analyze_deployment(text: str):
+    t = text.lower()
+    if "$port" in t or "port" in t and ("listen" in t or "bind" in t or "process" in t):
+        return {
+            "issue": "Port binding failure",
+            "root_cause": "The app is not binding to the PORT environment variable. Most platforms (Heroku, Render, Railway) assign a dynamic port at runtime — hardcoding a port or not reading $PORT will cause this.",
+            "fix": "Set your server to listen on `process.env.PORT` (Node) or `int(os.environ['PORT'])` (Python). Do not hardcode a port number.",
+        }
+    if "oomkilled" in t or "memory" in t and "limit" in t:
+        return {
+            "issue": "Memory limit exceeded (OOMKilled)",
+            "root_cause": "Container hit its memory ceiling during runtime. Often caused by a cold-start dependency load or memory leak.",
+            "fix": "Increase the container memory limit or lazy-load heavy dependencies to reduce peak usage at startup.",
+        }
+    if "timeout" in t or "timed out" in t:
+        return {
+            "issue": "Deployment timeout",
+            "root_cause": "The deploy process exceeded the platform's allowed startup window. App may be doing heavy work before binding to a port.",
+            "fix": "Start the HTTP server first, then initialise heavy resources asynchronously.",
+        }
+    if "cannot find module" in t or "module not found" in t or "importerror" in t:
+        return {
+            "issue": "Missing dependency",
+            "root_cause": "A required package is not installed in the deployment environment.",
+            "fix": "Ensure the package is listed in requirements.txt / package.json and re-deploy.",
+        }
+    return {
+        "issue": "Unrecognised pattern",
+        "root_cause": "No known pattern matched. The error may be environment-specific or require log context.",
+        "fix": "Check the full stack trace and platform logs for additional context.",
+    }
+
+if debug_input.strip():
+    result = analyze_deployment(debug_input)
+    st.markdown(f"""
+    <div class="result-box">
+        <div class="result-label">Detected issue</div>
+        <div style="font-size:15px;font-weight:600;color:#e8e9f0;margin-bottom:12px;">{result['issue']}</div>
+        <div class="result-label">Root cause</div>
+        <div style="font-size:14px;color:#c4c6d6;margin-bottom:12px;line-height:1.6;">{result['root_cause']}</div>
+        <div class="result-label">Suggested fix</div>
+        <div style="font-size:14px;color:#c4c6d6;line-height:1.6;">{result['fix']}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.markdown("---")
 
-# Tools
-st.markdown('<p class="section-label">Live tools</p>', unsafe_allow_html=True)
+# ── Support Gatekeeper ──────────────────────────────────────────────────────
+st.markdown("#### 🛡 Support Gatekeeper")
+st.caption("Classifies incoming tickets and recommends the right next step.")
 
-# Deployment Debugger
+gate_input = st.text_area(
+    "Paste a support message:",
+    value="My app isn't working",
+    height=80,
+    key="gate_input",
+    label_visibility="collapsed",
+)
+
+def classify_ticket(text: str):
+    t = text.lower()
+    # Duplicate / docs-answerable
+    docs_triggers = [
+        "reset my password", "forgot password", "change password",
+        "export", "download my data", "cancel my subscription", "how do i",
+        "how to", "where can i find", "what is",
+    ]
+    # Escalation signals
+    esc_triggers = [
+        "enterprise", "sso", "saml", "billing error", "charge", "refund",
+        "data breach", "security", "outage", "down for everyone", "not working for all",
+        "auth token", "session expired",
+    ]
+    # Vague / needs info
+    vague_triggers = [
+        "not working", "broken", "doesn't work", "it's broken", "won't load",
+        "nothing works", "help", "issue",
+    ]
+
+    for trigger in esc_triggers:
+        if trigger in t:
+            return {
+                "tag": "escalate",
+                "tag_class": "tag-esc",
+                "classification": "Escalate",
+                "next_step": "Route to Tier 2 or the relevant specialist team. Requires human review.",
+            }
+    for trigger in docs_triggers:
+        if trigger in t:
+            return {
+                "tag": "duplicate",
+                "tag_class": "tag-dup",
+                "classification": "Duplicate / Self-serve",
+                "next_step": "Auto-reply with the relevant docs link. No human response needed.",
+            }
+    for trigger in vague_triggers:
+        if trigger in t:
+            return {
+                "tag": "vague",
+                "tag_class": "tag-vague",
+                "classification": "Needs clarification",
+                "next_step": "Send a structured follow-up: ask what app, what error message, and what they expected to happen. Do not assign to a queue yet.",
+            }
+    return {
+        "tag": "self-serve",
+        "tag_class": "tag-self",
+        "classification": "Self-serve",
+        "next_step": "Likely answerable from docs or a macro. Review and route to the relevant help article.",
+    }
+
+if gate_input.strip():
+    cls = classify_ticket(gate_input)
+    st.markdown(f"""
+    <div class="result-box">
+        <div class="result-label">Classification &nbsp;<span class="tag {cls['tag_class']}">{cls['classification']}</span></div>
+        <div style="margin-top:10px;" class="result-label">Recommended next step</div>
+        <div style="font-size:14px;color:#c4c6d6;line-height:1.6;margin-top:4px;">{cls['next_step']}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ── Footer ───────────────────────────────────────────────────────────────────
+st.markdown("---")
 st.markdown("""
-<div class="tool-card">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-    <div class="tool-title">🔍 &nbsp;Deployment Debugger</div>
-    <span class="status-pill">Live</span>
-  </div>
-  <p class="tool-desc">Scans deployment logs for error patterns and summarizes the most likely root cause.</p>
-  <div class="demo-frame">
-    <div class="demo-bar">
-      <span style="width:8px;height:8px;border-radius:50%;background:#ff5f57;display:inline-block;"></span>
-      <span style="width:8px;height:8px;border-radius:50%;background:#febc2e;display:inline-block;margin:0 4px;"></span>
-      <span style="width:8px;height:8px;border-radius:50%;background:#28c840;display:inline-block;"></span>
-      <span class="demo-url">deploy-debugger / run #4821</span>
-    </div>
-    <div class="demo-body">
-      <div class="log log-err">14:02:31 &nbsp; OOMKilled — container exceeded memory limit (512Mi)</div>
-      <div class="log log-warn">14:02:29 &nbsp; Heap allocation spike detected (+340MB in 4s)</div>
-      <div class="log log-ok">14:01:58 &nbsp; Deploy started — image sha256:a3f9…</div>
-      <div class="analysis">
-        <div class="analysis-label">Root cause summary</div>
-        <div style="font-size:13px;color:#e8e9f0;line-height:1.5;">
-          Memory limit hit during startup. Likely cause: uncached dependency load on cold start.
-          Seen 3× in the last 7 days. Recommended fix: increase limit to 768Mi or lazy-load heavy deps.
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="footer">
+    <strong style="color:#e8e9f0;">Sefket Nouri</strong> — Support Specialist<br>
+    Focused on reducing repeat support issues through tooling and systems thinking<br>
+    <span style="font-size:12px;">
+        <a href="https://www.linkedin.com/in/sefketnouri" style="color:#6c63ff;text-decoration:none;">LinkedIn</a>
+        &nbsp;·&nbsp;
+        <a href="https://replit.com/@sefket24" style="color:#6c63ff;text-decoration:none;">Replit</a>
+    </span>
 </div>
 """, unsafe_allow_html=True)
-
-# Support Gatekeeper
-st.markdown("""
-<div class="tool-card">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-    <div class="tool-title">🛡 &nbsp;Support Gatekeeper</div>
-    <span class="status-pill">Live</span>
-  </div>
-  <p class="tool-desc">Classifies incoming tickets — duplicate, self-serve, or escalate — and routes them to the right queue automatically.</p>
-  <div class="demo-frame">
-    <div class="demo-bar">
-      <span style="width:8px;height:8px;border-radius:50%;background:#ff5f57;display:inline-block;"></span>
-      <span style="width:8px;height:8px;border-radius:50%;background:#febc2e;display:inline-block;margin:0 4px;"></span>
-      <span style="width:8px;height:8px;border-radius:50%;background:#28c840;display:inline-block;"></span>
-      <span class="demo-url">gatekeeper / queue</span>
-    </div>
-    <div class="demo-body">
-      <div class="ticket">
-        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
-          <span class="ticket-id">#TKT-1094</span><span class="tag tag-esc">Escalate</span>
-        </div>
-        <div class="ticket-body">"Auth tokens expiring mid-session for enterprise accounts on SSO."</div>
-        <div class="ticket-route">→ Route to: <strong style="color:#6c63ff;">Infra-Security</strong></div>
-      </div>
-      <div class="ticket">
-        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
-          <span class="ticket-id">#TKT-1095</span><span class="tag tag-dup">Duplicate</span>
-        </div>
-        <div class="ticket-body">"How do I reset my password?"</div>
-        <div class="ticket-route">→ Auto-close + link: <strong style="color:#6c63ff;">docs/reset-password</strong></div>
-      </div>
-      <div class="ticket">
-        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
-          <span class="ticket-id">#TKT-1096</span><span class="tag tag-self">Self-serve</span>
-        </div>
-        <div class="ticket-body">"Can I export my data as CSV?"</div>
-        <div class="ticket-route">→ Bot reply sent: <strong style="color:#6c63ff;">docs/data-export</strong></div>
-      </div>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown('<p style="text-align:center;font-size:12px;color:#8b8fa8;margin-top:32px;">Internal tooling demo · Not for external distribution</p>', unsafe_allow_html=True)
