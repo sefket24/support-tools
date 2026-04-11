@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 
 # ── Config ────────────────────────────────────────────────────────────────────
-DEBUG = True
+DEBUG = False
 VISITS_FILE = "visits.json"
 
 # ── Visit tracking (once per session, not per rerun) ─────────────────────────
