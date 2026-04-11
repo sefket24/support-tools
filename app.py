@@ -33,6 +33,10 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .tag-self { background: rgba(34,197,94,.12);  color: #4ade80; }
 .tag-vague { background: rgba(108,99,255,.12); color: #a78bfa; }
 .footer { text-align: center; font-size: 13px; color: #8b8fa8; margin-top: 40px; line-height: 1.8; }
+@media (max-width: 480px) {
+    .result-box { padding: 12px 14px; }
+    h2 { font-size: 22px !important; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -40,19 +44,15 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 st.markdown('<div class="badge">⬤ &nbsp;Support Tooling Demo</div>', unsafe_allow_html=True)
 st.markdown("## Reducing **repeated** support issues")
 st.markdown(
-    "This is a short demo of tools I built to reduce repeated support issues. "
-    "Instead of handling tickets one by one, these focus on identifying patterns, "
-    "surfacing root causes, and routing issues earlier."
+    "Tools I built to stop handling the same support issues twice — "
+    "pattern detection, root cause analysis, and ticket routing."
 )
 
 st.markdown("---")
 
 # ── Try it instantly ────────────────────────────────────────────────────────
 st.markdown("### Try it instantly")
-st.markdown(
-    "Paste an error or issue below — both tools are pre-filled so you can see "
-    "how they work immediately."
-)
+st.markdown("Both tools are pre-filled. Edit the input to test your own.")
 
 # ── Deployment Debugger ─────────────────────────────────────────────────────
 st.markdown("#### 🔍 Deployment Debugger")
@@ -195,7 +195,7 @@ st.markdown("""
     <span style="font-size:12px;">
         <a href="https://www.linkedin.com/in/sefketnouri" style="color:#6c63ff;text-decoration:none;">LinkedIn</a>
         &nbsp;·&nbsp;
-        <a href="https://replit.com/@sefket24" style="color:#6c63ff;text-decoration:none;">Replit</a>
+        <a href="https://replit.com/@sefket24" style="color:#6c63ff;text-decoration:none;">View implementation on Replit</a>
     </span>
 </div>
 """, unsafe_allow_html=True)
