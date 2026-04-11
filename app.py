@@ -183,13 +183,13 @@ _VAGUE_HTML = """
 st.markdown("""
 <div style="margin-bottom:24px;">
     <div style="font-size:18px;font-weight:700;color:#e8e9f0;margin-bottom:4px;">Sefket Nouri</div>
-    <div style="font-size:13px;color:#8b8fa8;margin-bottom:8px;">Replit Product Support Specialist candidate</div>
+    <div style="font-size:13px;color:#8b8fa8;margin-bottom:8px;">Replit Support Specialist candidate</div>
     <div style="font-size:12px;color:#8b8fa8;line-height:2;">
         <a href="mailto:me@sefketnouri.com" style="color:#6c63ff;text-decoration:none;">me@sefketnouri.com</a>
         &nbsp;·&nbsp;
-        <a href="https://www.linkedin.com/in/sefketnouri/" style="color:#6c63ff;text-decoration:none;">LinkedIn</a>
+        <a href="https://www.linkedin.com/in/sefketnouri/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;">linkedin.com/in/sefketnouri</a>
         &nbsp;·&nbsp;
-        <a href="https://sefket24-support-tools-app-zwaemo.streamlit.app/" style="color:#6c63ff;text-decoration:none;">App</a>
+        <a href="https://sefket24-support-tools-app-zwaemo.streamlit.app/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;">sefket24-support-tools-app-zwaemo.streamlit.app</a>
     </div>
     <div style="font-size:13px;color:#8b8fa8;margin-top:8px;">
         I built these tools to reduce support friction across deployment, billing, and triage
