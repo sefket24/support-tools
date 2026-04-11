@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 # ── Config ────────────────────────────────────────────────────────────────────
 DEBUG = True
-VISITS_FILE = os.path.join(os.path.dirname(__file__), "visits.json")
+VISITS_FILE = "visits.json"
 
 # ── Visit tracking (once per session, not per rerun) ─────────────────────────
 def _load_visits():
