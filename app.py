@@ -28,9 +28,9 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     font-size: 11px; font-weight: 600; padding: 3px 10px;
     border-radius: 4px; text-transform: uppercase; letter-spacing: .05em;
 }
-.tag-esc  { background: rgba(239,68,68,.12); color: #f87171; }
-.tag-dup  { background: rgba(251,146,60,.12); color: #fb923c; }
-.tag-self { background: rgba(34,197,94,.12);  color: #4ade80; }
+.tag-esc   { background: rgba(239,68,68,.12); color: #f87171; }
+.tag-dup   { background: rgba(251,146,60,.12); color: #fb923c; }
+.tag-self  { background: rgba(34,197,94,.12);  color: #4ade80; }
 .tag-vague { background: rgba(108,99,255,.12); color: #a78bfa; }
 .footer { text-align: center; font-size: 13px; color: #8b8fa8; margin-top: 40px; line-height: 1.8; }
 @media (max-width: 480px) {
@@ -40,33 +40,13 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Header ──────────────────────────────────────────────────────────────────
-st.markdown('<div class="badge">⬤ &nbsp;Support Tooling Demo</div>', unsafe_allow_html=True)
-st.markdown("## Reducing **repeated** support issues")
-st.markdown(
-    "Tools I built to stop handling the same support issues twice — "
-    "pattern detection, root cause analysis, and ticket routing."
-)
+# ── Session state init (runs once; preserves user edits across reruns) ───────
+if "debugger_input" not in st.session_state:
+    st.session_state["debugger_input"] = "Deployment fails: no process listening on $PORT"
+if "gatekeeper_input" not in st.session_state:
+    st.session_state["gatekeeper_input"] = "My app isn't working"
 
-st.markdown("---")
-
-# ── Try it instantly ────────────────────────────────────────────────────────
-st.markdown("### Try it instantly")
-st.markdown("Both tools are pre-filled. Edit the input to test your own.")
-
-# ── Deployment Debugger ─────────────────────────────────────────────────────
-st.markdown("#### 🔍 Deployment Debugger")
-st.caption("Scans deployment errors for known failure patterns and surfaces the root cause.")
-st.markdown('<p style="font-size:12px;color:#8b8fa8;margin:-8px 0 8px;">Best with real error messages or logs</p>', unsafe_allow_html=True)
-
-debug_input = st.text_area(
-    "Paste a specific error or log message",
-    value="Deployment fails: no process listening on $PORT",
-    placeholder="Example: Deployment fails: no process listening on $PORT",
-    height=80,
-    key="debug_input",
-)
-
+# ── Logic functions ───────────────────────────────────────────────────────────
 _VAGUE_PHRASES = [
     "not working", "broken", "doesn't work", "it's not working", "isnt working",
     "my app is broken", "won't work", "nothing works", "app is down",
@@ -115,125 +95,116 @@ def analyze_deployment(text: str):
         }
     return None
 
-if debug_input.strip():
-    if _is_vague(debug_input):
-        st.markdown("""
-        <div class="result-box">
-            <div style="font-size:14px;color:#c4c6d6;line-height:1.8;">
-                Could not identify a specific error.<br>
-                <span style="font-size:13px;color:#8b8fa8;">Try pasting:</span>
-                <ul style="font-size:13px;color:#8b8fa8;margin:4px 0 0 16px;padding:0;">
-                    <li>a log line</li>
-                    <li>an error message</li>
-                    <li>or a deployment failure output</li>
-                </ul>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        result = analyze_deployment(debug_input)
-        if result:
-            st.markdown(f"""
-            <div class="result-box">
-                <div class="result-label">Detected issue</div>
-                <div style="font-size:15px;font-weight:600;color:#e8e9f0;margin-bottom:12px;">{result['issue']}</div>
-                <div class="result-label">Root cause</div>
-                <div style="font-size:14px;color:#c4c6d6;margin-bottom:12px;line-height:1.6;">{result['root_cause']}</div>
-                <div class="result-label">Suggested fix</div>
-                <div style="font-size:14px;color:#c4c6d6;line-height:1.6;">{result['fix']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div class="result-box">
-                <div style="font-size:14px;color:#c4c6d6;line-height:1.8;">
-                    Could not identify a specific error.<br>
-                    <span style="font-size:13px;color:#8b8fa8;">Try pasting:</span>
-                    <ul style="font-size:13px;color:#8b8fa8;margin:4px 0 0 16px;padding:0;">
-                        <li>a log line</li>
-                        <li>an error message</li>
-                        <li>or a deployment failure output</li>
-                    </ul>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-st.markdown("---")
-
-# ── Support Gatekeeper ──────────────────────────────────────────────────────
-st.markdown("#### 🛡 Support Gatekeeper")
-st.caption("Classifies incoming tickets and recommends the right next step.")
-
-gate_input = st.text_area(
-    "Paste a support message:",
-    value="My app isn't working",
-    height=80,
-    key="gate_input",
-    label_visibility="collapsed",
-)
-
 def classify_ticket(text: str):
     t = text.lower()
-    # Duplicate / docs-answerable
-    docs_triggers = [
-        "reset my password", "forgot password", "change password",
-        "export", "download my data", "cancel my subscription", "how do i",
-        "how to", "where can i find", "what is",
-    ]
-    # Escalation signals
     esc_triggers = [
         "enterprise", "sso", "saml", "billing error", "charge", "refund",
         "data breach", "security", "outage", "down for everyone", "not working for all",
         "auth token", "session expired",
     ]
-    # Vague / needs info
+    docs_triggers = [
+        "reset my password", "forgot password", "change password",
+        "export", "download my data", "cancel my subscription", "how do i",
+        "how to", "where can i find", "what is",
+    ]
     vague_triggers = [
         "not working", "broken", "doesn't work", "it's broken", "won't load",
         "nothing works", "help", "issue",
     ]
-
     for trigger in esc_triggers:
         if trigger in t:
-            return {
-                "tag": "escalate",
-                "tag_class": "tag-esc",
-                "classification": "Escalate",
-                "next_step": "Route to Tier 2 or the relevant specialist team. Requires human review.",
-            }
+            return {"tag_class": "tag-esc", "classification": "Escalate",
+                    "next_step": "Route to Tier 2 or the relevant specialist team. Requires human review."}
     for trigger in docs_triggers:
         if trigger in t:
-            return {
-                "tag": "duplicate",
-                "tag_class": "tag-dup",
-                "classification": "Duplicate / Self-serve",
-                "next_step": "Auto-reply with the relevant docs link. No human response needed.",
-            }
+            return {"tag_class": "tag-dup", "classification": "Duplicate / Self-serve",
+                    "next_step": "Auto-reply with the relevant docs link. No human response needed."}
     for trigger in vague_triggers:
         if trigger in t:
-            return {
-                "tag": "vague",
-                "tag_class": "tag-vague",
-                "classification": "Needs clarification",
-                "next_step": "Send a structured follow-up: ask what app, what error message, and what they expected to happen. Do not assign to a queue yet.",
-            }
-    return {
-        "tag": "self-serve",
-        "tag_class": "tag-self",
-        "classification": "Self-serve",
-        "next_step": "Likely answerable from docs or a macro. Review and route to the relevant help article.",
-    }
+            return {"tag_class": "tag-vague", "classification": "Needs clarification",
+                    "next_step": "Send a structured follow-up: ask what app, what error message, and what they expected to happen. Do not assign to a queue yet."}
+    return {"tag_class": "tag-self", "classification": "Self-serve",
+            "next_step": "Likely answerable from docs or a macro. Review and route to the relevant help article."}
 
-if gate_input.strip():
-    cls = classify_ticket(gate_input)
-    st.markdown(f"""
-    <div class="result-box">
-        <div class="result-label">Classification &nbsp;<span class="tag {cls['tag_class']}">{cls['classification']}</span></div>
-        <div style="margin-top:10px;" class="result-label">Recommended next step</div>
-        <div style="font-size:14px;color:#c4c6d6;line-height:1.6;margin-top:4px;">{cls['next_step']}</div>
+_VAGUE_HTML = """
+<div class="result-box">
+    <div style="font-size:14px;color:#c4c6d6;line-height:1.8;">
+        Could not identify a specific error.<br>
+        <span style="font-size:13px;color:#8b8fa8;">Try pasting:</span>
+        <ul style="font-size:13px;color:#8b8fa8;margin:4px 0 0 16px;padding:0;">
+            <li>a log line</li>
+            <li>an error message</li>
+            <li>or a deployment failure output</li>
+        </ul>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+"""
 
-# ── Footer ───────────────────────────────────────────────────────────────────
+# ── Header ────────────────────────────────────────────────────────────────────
+st.markdown('<div class="badge">⬤ &nbsp;Support Tooling Demo</div>', unsafe_allow_html=True)
+st.markdown("## Reducing **repeated** support issues")
+st.markdown(
+    "Tools I built to stop handling the same support issues twice — "
+    "pattern detection, root cause analysis, and ticket routing."
+)
+
+st.markdown("---")
+st.markdown("### Try it instantly")
+st.markdown("Both tools are pre-filled. Edit the input to test your own.")
+
+# ── Deployment Debugger ───────────────────────────────────────────────────────
+st.markdown("#### 🔍 Deployment Debugger")
+st.caption("Scans deployment errors for known failure patterns and surfaces the root cause.")
+st.markdown('<p style="font-size:12px;color:#8b8fa8;margin:-8px 0 8px;">Best with real error messages or logs</p>', unsafe_allow_html=True)
+
+debugger_input = st.text_area(
+    "Paste a specific error or log message",
+    key="debugger_input",
+    placeholder="Example: Deployment fails: no process listening on $PORT",
+    height=80,
+)
+
+if _is_vague(debugger_input):
+    st.markdown(_VAGUE_HTML, unsafe_allow_html=True)
+else:
+    result = analyze_deployment(debugger_input)
+    if result:
+        st.markdown(f"""
+        <div class="result-box">
+            <div class="result-label">Detected issue</div>
+            <div style="font-size:15px;font-weight:600;color:#e8e9f0;margin-bottom:12px;">{result['issue']}</div>
+            <div class="result-label">Root cause</div>
+            <div style="font-size:14px;color:#c4c6d6;margin-bottom:12px;line-height:1.6;">{result['root_cause']}</div>
+            <div class="result-label">Suggested fix</div>
+            <div style="font-size:14px;color:#c4c6d6;line-height:1.6;">{result['fix']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(_VAGUE_HTML, unsafe_allow_html=True)
+
+st.markdown("---")
+
+# ── Support Gatekeeper ────────────────────────────────────────────────────────
+st.markdown("#### 🛡 Support Gatekeeper")
+st.caption("Classifies incoming tickets and recommends the right next step.")
+
+gatekeeper_input = st.text_area(
+    "Paste a support message",
+    key="gatekeeper_input",
+    placeholder="Example: My app isn't working",
+    height=80,
+)
+
+cls = classify_ticket(gatekeeper_input)
+st.markdown(f"""
+<div class="result-box">
+    <div class="result-label">Classification &nbsp;<span class="tag {cls['tag_class']}">{cls['classification']}</span></div>
+    <div style="margin-top:10px;" class="result-label">Recommended next step</div>
+    <div style="font-size:14px;color:#c4c6d6;line-height:1.6;margin-top:4px;">{cls['next_step']}</div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("---")
 st.markdown("""
 <div class="footer">
