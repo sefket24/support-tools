@@ -57,24 +57,45 @@ st.markdown("Both tools are pre-filled. Edit the input to test your own.")
 # ── Deployment Debugger ─────────────────────────────────────────────────────
 st.markdown("#### 🔍 Deployment Debugger")
 st.caption("Scans deployment errors for known failure patterns and surfaces the root cause.")
+st.markdown('<p style="font-size:12px;color:#8b8fa8;margin:-8px 0 8px;">Best with real error messages or logs</p>', unsafe_allow_html=True)
 
 debug_input = st.text_area(
-    "Paste a deployment error or log line:",
+    "Paste a specific error or log message",
     value="Deployment fails: no process listening on $PORT",
+    placeholder="Example: Deployment fails: no process listening on $PORT",
     height=80,
     key="debug_input",
-    label_visibility="collapsed",
 )
+
+_VAGUE_PHRASES = [
+    "not working", "broken", "doesn't work", "it's not working", "isnt working",
+    "my app is broken", "won't work", "nothing works", "app is down",
+    "something is wrong", "not loading", "help", "it broke",
+]
+_TECHNICAL_SIGNALS = [
+    "error", "fail", "exception", "port", "memory", "timeout", "module",
+    "import", "crash", "exit", "kill", "log", "stack", "trace", "deploy",
+    "build", "npm", "pip", "docker", "process", "listen", "bind", "oom",
+    "sigterm", "sigkill", "exit code", "enoent", "econnrefused",
+]
+
+def _is_vague(text: str) -> bool:
+    t = text.strip().lower()
+    if len(t) < 15:
+        return True
+    if any(sig in t for sig in _TECHNICAL_SIGNALS):
+        return False
+    return any(phrase in t for phrase in _VAGUE_PHRASES)
 
 def analyze_deployment(text: str):
     t = text.lower()
-    if "$port" in t or "port" in t and ("listen" in t or "bind" in t or "process" in t):
+    if "$port" in t or ("port" in t and ("listen" in t or "bind" in t or "process" in t)):
         return {
             "issue": "Port binding failure",
             "root_cause": "The app is not binding to the PORT environment variable. Most platforms (Heroku, Render, Railway) assign a dynamic port at runtime — hardcoding a port or not reading $PORT will cause this.",
             "fix": "Set your server to listen on `process.env.PORT` (Node) or `int(os.environ['PORT'])` (Python). Do not hardcode a port number.",
         }
-    if "oomkilled" in t or "memory" in t and "limit" in t:
+    if "oomkilled" in t or ("memory" in t and "limit" in t):
         return {
             "issue": "Memory limit exceeded (OOMKilled)",
             "root_cause": "Container hit its memory ceiling during runtime. Often caused by a cold-start dependency load or memory leak.",
@@ -92,24 +113,50 @@ def analyze_deployment(text: str):
             "root_cause": "A required package is not installed in the deployment environment.",
             "fix": "Ensure the package is listed in requirements.txt / package.json and re-deploy.",
         }
-    return {
-        "issue": "Unrecognised pattern",
-        "root_cause": "No known pattern matched. The error may be environment-specific or require log context.",
-        "fix": "Check the full stack trace and platform logs for additional context.",
-    }
+    return None
 
 if debug_input.strip():
-    result = analyze_deployment(debug_input)
-    st.markdown(f"""
-    <div class="result-box">
-        <div class="result-label">Detected issue</div>
-        <div style="font-size:15px;font-weight:600;color:#e8e9f0;margin-bottom:12px;">{result['issue']}</div>
-        <div class="result-label">Root cause</div>
-        <div style="font-size:14px;color:#c4c6d6;margin-bottom:12px;line-height:1.6;">{result['root_cause']}</div>
-        <div class="result-label">Suggested fix</div>
-        <div style="font-size:14px;color:#c4c6d6;line-height:1.6;">{result['fix']}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    if _is_vague(debug_input):
+        st.markdown("""
+        <div class="result-box">
+            <div style="font-size:14px;color:#c4c6d6;line-height:1.8;">
+                Could not identify a specific error.<br>
+                <span style="font-size:13px;color:#8b8fa8;">Try pasting:</span>
+                <ul style="font-size:13px;color:#8b8fa8;margin:4px 0 0 16px;padding:0;">
+                    <li>a log line</li>
+                    <li>an error message</li>
+                    <li>or a deployment failure output</li>
+                </ul>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        result = analyze_deployment(debug_input)
+        if result:
+            st.markdown(f"""
+            <div class="result-box">
+                <div class="result-label">Detected issue</div>
+                <div style="font-size:15px;font-weight:600;color:#e8e9f0;margin-bottom:12px;">{result['issue']}</div>
+                <div class="result-label">Root cause</div>
+                <div style="font-size:14px;color:#c4c6d6;margin-bottom:12px;line-height:1.6;">{result['root_cause']}</div>
+                <div class="result-label">Suggested fix</div>
+                <div style="font-size:14px;color:#c4c6d6;line-height:1.6;">{result['fix']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="result-box">
+                <div style="font-size:14px;color:#c4c6d6;line-height:1.8;">
+                    Could not identify a specific error.<br>
+                    <span style="font-size:13px;color:#8b8fa8;">Try pasting:</span>
+                    <ul style="font-size:13px;color:#8b8fa8;margin:4px 0 0 16px;padding:0;">
+                        <li>a log line</li>
+                        <li>an error message</li>
+                        <li>or a deployment failure output</li>
+                    </ul>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
 st.markdown("---")
 
