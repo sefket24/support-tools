@@ -1,4 +1,43 @@
 import streamlit as st
+import json
+import os
+from datetime import datetime, timezone
+
+# ── Config ────────────────────────────────────────────────────────────────────
+DEBUG = True
+VISITS_FILE = os.path.join(os.path.dirname(__file__), "visits.json")
+
+# ── Visit tracking (once per session, not per rerun) ─────────────────────────
+def _load_visits():
+    try:
+        with open(VISITS_FILE) as f:
+            data = json.load(f)
+        if "visits" not in data or "timestamps" not in data:
+            raise ValueError
+        return data
+    except Exception:
+        return {"visits": 0, "timestamps": []}
+
+def _save_visits(data):
+    try:
+        with open(VISITS_FILE, "w") as f:
+            json.dump(data, f)
+    except Exception:
+        pass  # filesystem may be read-only on Streamlit Cloud — session state is the fallback
+
+if "visit_counted" not in st.session_state:
+    st.session_state["visit_counted"] = True
+    st.session_state.setdefault("session_visits", 0)
+    st.session_state["session_visits"] += 1
+
+    data = _load_visits()
+    data["visits"] += 1
+    data["timestamps"].append(datetime.now(timezone.utc).isoformat())
+    data["timestamps"] = data["timestamps"][-50:]  # keep last 50
+    _save_visits(data)
+    st.session_state["visit_data"] = data
+else:
+    st.session_state["visit_data"] = _load_visits()
 
 st.set_page_config(page_title="Support Tools", page_icon="🛠", layout="centered")
 
@@ -203,6 +242,24 @@ st.markdown(f"""
     <div style="font-size:14px;color:#c4c6d6;line-height:1.6;margin-top:4px;">{cls['next_step']}</div>
 </div>
 """, unsafe_allow_html=True)
+
+# ── Debug panel ──────────────────────────────────────────────────────────────
+if DEBUG:
+    vd = st.session_state.get("visit_data", {})
+    total = vd.get("visits", "n/a")
+    recent = vd.get("timestamps", [])[-10:][::-1]
+    st.markdown("---")
+    st.markdown(
+        f'<p style="font-size:11px;color:#555;margin-bottom:4px;">Visits (file): <strong>{total}</strong> &nbsp;·&nbsp; '
+        f'Session visits: <strong>{st.session_state.get("session_visits", 1)}</strong></p>',
+        unsafe_allow_html=True,
+    )
+    if recent:
+        lines = "".join(f"<li>{ts}</li>" for ts in recent)
+        st.markdown(
+            f'<ul style="font-size:11px;color:#777;margin:0;padding-left:16px;">{lines}</ul>',
+            unsafe_allow_html=True,
+        )
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("---")
