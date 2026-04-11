@@ -182,7 +182,7 @@ _VAGUE_HTML = """
 # ── Identity header ──────────────────────────────────────────────────────────
 st.markdown("""
 <div style="margin-bottom:28px;line-height:1.5;">
-    <div style="font-size:22px;font-weight:600;color:#e8e9f0;margin-bottom:10px;letter-spacing:-0.01em;">Sefket Nouri</div>
+    <div style="font-size:22px;font-weight:600;color:#000000;margin-bottom:10px;letter-spacing:-0.01em;">Sefket Nouri</div>
     <div style="font-size:14px;font-weight:400;color:#8b8fa8;margin-bottom:4px;">Replit Support Specialist candidate</div>
     <div style="font-size:13px;color:#8b8fa8;margin-bottom:12px;">
         <a href="mailto:me@sefketnouri.com" style="color:#6c63ff;text-decoration:none;">me@sefketnouri.com</a>
