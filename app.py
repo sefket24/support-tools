@@ -185,11 +185,13 @@ st.markdown("""
     <div style="font-size:22px;font-weight:600;color:#000000;margin-bottom:10px;letter-spacing:-0.01em;">Sefket Nouri</div>
     <div style="font-size:14px;font-weight:400;color:#8b8fa8;margin-bottom:4px;">Replit Support Specialist candidate</div>
     <div style="font-size:13px;color:#8b8fa8;margin-bottom:12px;">
-        <a href="mailto:me@sefketnouri.com" style="color:#6c63ff;text-decoration:none;">me@sefketnouri.com</a>
+        <a href="mailto:me@sefketnouri.com" style="color:#6c63ff;text-decoration:none;">Email</a>
         <span style="margin:0 6px;color:#3a3d50;">·</span>
-        <a href="https://www.linkedin.com/in/sefketnouri/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;">linkedin.com/in/sefketnouri</a>
+        <a href="https://www.linkedin.com/in/sefketnouri/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;">LinkedIn</a>
         <span style="margin:0 6px;color:#3a3d50;">·</span>
-        <a href="https://sefket24-support-tools-app-zwaemo.streamlit.app/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;">sefket24-support-tools-app-zwaemo.streamlit.app</a>
+        <a href="https://sefket24-support-tools-app-zwaemo.streamlit.app/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;">App</a>
+        <span style="margin:0 6px;color:#3a3d50;">·</span>
+        <a href="https://replit.com/@sefketnouri" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;">Replit</a>
     </div>
     <div style="font-size:13px;font-weight:400;color:#8b8fa8;margin-bottom:6px;">
         I built these tools to reduce support friction across deployment, billing, and triage
