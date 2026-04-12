@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import os
+import re
 from datetime import datetime, timezone
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -10,20 +11,22 @@ VISITS_FILE = "visits.json"
 # ── Visit tracking (once per session, not per rerun) ─────────────────────────
 def _load_visits():
     try:
-        with open(VISITS_FILE) as f:
-            data = json.load(f)
-        if "visits" not in data or "timestamps" not in data:
-            raise ValueError
-        return data
+        if os.path.exists(VISITS_FILE):
+            with open(VISITS_FILE) as f:
+                data = json.load(f)
+            if "visits" not in data or "timestamps" not in data:
+                raise ValueError
+            return data
     except Exception:
-        return {"visits": 0, "timestamps": []}
+        pass
+    return {"visits": 0, "timestamps": []}
 
 def _save_visits(data):
     try:
         with open(VISITS_FILE, "w") as f:
             json.dump(data, f)
     except Exception:
-        pass  # filesystem may be read-only on Streamlit Cloud — session state is the fallback
+        pass 
 
 if "visit_counted" not in st.session_state:
     st.session_state["visit_counted"] = True
@@ -43,12 +46,13 @@ st.set_page_config(page_title="Support Tools", page_icon="🛠", layout="centere
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@500;700&display=swap');
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
 
 .badge {
     display: inline-block;
-    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    font-size: 10px; font-weight: 700; letter-spacing: .08em;
     text-transform: uppercase; color: #6c63ff;
     background: rgba(108,99,255,.12);
     border: 1px solid rgba(108,99,255,.25);
@@ -64,14 +68,41 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     text-transform: uppercase; color: #6c63ff; margin-bottom: 6px;
 }
 .tag {
-    font-size: 11px; font-weight: 600; padding: 3px 10px;
+    font-size: 10px; font-weight: 700; padding: 2px 8px;
     border-radius: 4px; text-transform: uppercase; letter-spacing: .05em;
 }
 .tag-esc   { background: rgba(239,68,68,.12); color: #f87171; }
 .tag-dup   { background: rgba(251,146,60,.12); color: #fb923c; }
 .tag-self  { background: rgba(34,197,94,.12);  color: #4ade80; }
 .tag-vague { background: rgba(108,99,255,.12); color: #a78bfa; }
+
+.escalation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+}
+.esc-stat {
+    background: rgba(0,0,0,0.2);
+    padding: 8px;
+    border-radius: 6px;
+    text-align: center;
+}
+.esc-label { font-size: 8px; color: #8b8fa8; text-transform: uppercase; }
+.esc-val { font-size: 11px; font-weight: 700; color: #e8e9f0; }
+
 .footer { text-align: center; font-size: 13px; color: #8b8fa8; margin-top: 40px; line-height: 1.8; }
+
+/* Positioning line */
+.pos-line {
+    font-size: 12px;
+    color: #a0a4c0;
+    font-style: italic;
+    border-left: 2px solid #6c63ff;
+    padding-left: 10px;
+    margin: 20px 0;
+}
+
 @media (max-width: 480px) {
     .result-box { padding: 12px 14px; }
     h2 { font-size: 22px !important; }
@@ -79,220 +110,150 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Session state init (runs once; preserves user edits across reruns) ───────
-if "debugger_input" not in st.session_state:
-    st.session_state["debugger_input"] = "Deployment fails: no process listening on $PORT"
-if "gatekeeper_input" not in st.session_state:
-    st.session_state["gatekeeper_input"] = "My app isn't working"
-
 # ── Logic functions ───────────────────────────────────────────────────────────
-_VAGUE_PHRASES = [
-    "not working", "broken", "doesn't work", "it's not working", "isnt working",
-    "my app is broken", "won't work", "nothing works", "app is down",
-    "something is wrong", "not loading", "help", "it broke",
-]
-_TECHNICAL_SIGNALS = [
-    "error", "fail", "exception", "port", "memory", "timeout", "module",
-    "import", "crash", "exit", "kill", "log", "stack", "trace", "deploy",
-    "build", "npm", "pip", "docker", "process", "listen", "bind", "oom",
-    "sigterm", "sigkill", "exit code", "enoent", "econnrefused",
-]
-
-def _is_vague(text: str) -> bool:
-    t = text.strip().lower()
-    if len(t) < 15:
-        return True
-    if any(sig in t for sig in _TECHNICAL_SIGNALS):
-        return False
-    return any(phrase in t for phrase in _VAGUE_PHRASES)
-
 def analyze_deployment(text: str):
     t = text.lower()
     if "$port" in t or ("port" in t and ("listen" in t or "bind" in t or "process" in t)):
         return {
             "issue": "Port binding failure",
-            "root_cause": "The app is not binding to the PORT environment variable. Most platforms (Heroku, Render, Railway) assign a dynamic port at runtime — hardcoding a port or not reading $PORT will cause this.",
-            "fix": "Set your server to listen on `process.env.PORT` (Node) or `int(os.environ['PORT'])` (Python). Do not hardcode a port number.",
+            "root_cause": "The app is not binding to the required $PORT environment variable assigned by the platform.",
+            "pattern": "Common runtime port error",
+            "fix_time": "2–5 minutes",
+            "suggested_response": "Looks like your app isn’t listening on the required port. Make sure your server is running on $PORT and try redeploying.",
+            "fix": "Set your server to listen on `process.env.PORT` (Node) or `int(os.environ['PORT'])` (Python)."
         }
     if "oomkilled" in t or ("memory" in t and "limit" in t):
         return {
             "issue": "Memory limit exceeded (OOMKilled)",
-            "root_cause": "Container hit its memory ceiling during runtime. Often caused by a cold-start dependency load or memory leak.",
-            "fix": "Increase the container memory limit or lazy-load heavy dependencies to reduce peak usage at startup.",
+            "root_cause": "Container hit its memory ceiling during runtime dependency load or memory leak.",
+            "pattern": "Recurring deployment memory issue",
+            "fix_time": "5–10 minutes",
+            "suggested_response": "Your app hit a memory limit during startup. Try increasing the memory allowance in your config or lazy-loading heavy libs.",
+            "fix": "Increase the container memory limit or optimize dependency loading."
         }
     if "timeout" in t or "timed out" in t:
         return {
             "issue": "Deployment timeout",
-            "root_cause": "The deploy process exceeded the platform's allowed startup window. App may be doing heavy work before binding to a port.",
-            "fix": "Start the HTTP server first, then initialise heavy resources asynchronously.",
-        }
-    if "cannot find module" in t or "module not found" in t or "importerror" in t:
-        return {
-            "issue": "Missing dependency",
-            "root_cause": "A required package is not installed in the deployment environment.",
-            "fix": "Ensure the package is listed in requirements.txt / package.json and re-deploy.",
+            "root_cause": "Startup exceeded the platform window. App likely doing blocking work before server bind.",
+            "pattern": "Startup timeout pattern",
+            "fix_time": "Requires deeper investigation",
+            "suggested_response": "The deployment timed out because the app took too long to start. Try starting the server before loading heavy assets.",
+            "fix": "Start the HTTP server first, then initialise resources asynchronously."
         }
     return None
 
 def classify_ticket(text: str):
     t = text.lower()
-    esc_triggers = [
-        "enterprise", "sso", "saml", "billing error", "charge", "refund",
-        "data breach", "security", "outage", "down for everyone", "not working for all",
-        "auth token", "session expired",
-    ]
-    docs_triggers = [
-        "reset my password", "forgot password", "change password",
-        "export", "download my data", "cancel my subscription", "how do i",
-        "how to", "where can i find", "what is",
-    ]
-    vague_triggers = [
-        "not working", "broken", "doesn't work", "it's broken", "won't load",
-        "nothing works", "help", "issue",
-    ]
-    for trigger in esc_triggers:
-        if trigger in t:
-            return {"tag_class": "tag-esc", "classification": "Escalate",
-                    "next_step": "Route to Tier 2 or the relevant specialist team. Requires human review."}
-    for trigger in docs_triggers:
-        if trigger in t:
-            return {"tag_class": "tag-dup", "classification": "Duplicate / Self-serve",
-                    "next_step": "Auto-reply with the relevant docs link. No human response needed."}
-    for trigger in vague_triggers:
-        if trigger in t:
-            return {"tag_class": "tag-vague", "classification": "Needs clarification",
-                    "next_step": "Send a structured follow-up: ask what app, what error message, and what they expected to happen. Do not assign to a queue yet."}
-    return {"tag_class": "tag-self", "classification": "Self-serve",
-            "next_step": "Likely answerable from docs or a macro. Review and route to the relevant help article."}
-
-_VAGUE_HTML = """
-<div class="result-box">
-    <div style="font-size:14px;color:#c4c6d6;line-height:1.8;">
-        Could not identify a specific error.<br>
-        <span style="font-size:13px;color:#8b8fa8;">Try pasting:</span>
-        <ul style="font-size:13px;color:#8b8fa8;margin:4px 0 0 16px;padding:0;">
-            <li>a log line</li>
-            <li>an error message</li>
-            <li>or a deployment failure output</li>
-        </ul>
-    </div>
-</div>
-"""
+    if any(w in t for w in ["enterprise", "billing", "refund", "breach", "outage"]):
+        return {
+            "tag_class": "tag-esc", 
+            "classification": "Escalate",
+            "pattern": "High-priority business risk",
+            "next_step": "Route to Tier 2 Engineering queue (Linear).",
+            "agent_response": "Got it — I’m escalating this to our engineering team and will follow up.",
+            "esc_details": {"team": "Engineering", "tool": "Linear", "priority": "High", "note": "Priority issue detected in social inbox."}
+        }
+    if any(w in t for w in ["how to", "where is", "forgot password", "reset"]):
+        return {
+            "tag_class": "tag-dup", 
+            "classification": "Self-serve / Doc link",
+            "pattern": "Common account access question",
+            "next_step": "Auto-populate with help center article link.",
+            "agent_response": "You can do this here: [help.replit.com] — let me know if you run into any issues.",
+            "esc_details": None
+        }
+    return {
+        "tag_class": "tag-self", 
+        "classification": "Standard Support",
+        "pattern": "General technical query",
+        "next_step": "Review logs and provide structured response.",
+        "agent_response": "Hey — that shouldn't happen. Can you share a bit more detail so I can help figure this out?",
+        "esc_details": None
+    }
 
 # ── Identity header ──────────────────────────────────────────────────────────
 st.markdown("""
-<div style="margin-bottom:28px;line-height:1.5;">
-    <div style="font-size:22px;font-weight:600;color:#000000;margin-bottom:10px;letter-spacing:-0.01em;">Sefket Nouri</div>
-    <div style="font-size:14px;font-weight:400;color:#8b8fa8;margin-bottom:4px;"><a href="https://replit.com/" target="_blank" style="color:#8b8fa8;text-decoration:none;">Replit</a> Social Media Support Specialist candidate</div>
+<div style="margin-bottom:20px;line-height:1.4;">
+    <div style="font-size:22px;font-weight:700;color:#e8e9f0;margin-bottom:6px;">Sefket Nouri</div>
     <div style="font-size:13px;color:#8b8fa8;margin-bottom:12px;display:flex;gap:12px;">
-        <a href="mailto:me@sefketnouri.com" style="color:#6c63ff;text-decoration:none;border-bottom:1px solid rgba(108,99,255,0.3);">me@sefketnouri.com</a>
-        <a href="https://www.linkedin.com/in/sefketnouri/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;border-bottom:1px solid rgba(108,99,255,0.3);">LinkedIn</a>
-        <a href="https://sefket24-support-tools-app-zwaemo.streamlit.app/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;border-bottom:1px solid rgba(108,99,255,0.3);">App</a>
-        <a href="https://replit.com/@sefketnouri" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;border-bottom:1px solid rgba(108,99,255,0.3);">Replit</a>
+        <a href="mailto:me@sefketnouri.com" style="color:#6c63ff;text-decoration:none;">me@sefketnouri.com</a>
+        <a href="https://www.linkedin.com/in/sefketnouri/" style="color:#6c63ff;text-decoration:none;">LinkedIn</a>
     </div>
-    <div style="font-size:13px;font-weight:400;color:#8b8fa8;margin-bottom:6px;">
-        I built these tools to reduce support friction across deployment, billing, and triage
-    </div>
-    <div style="font-size:13px;font-weight:500;color:#a0a4c0;">
-        Workflow: Deployment Debugger → Support Gatekeeper → <a href="https://sefket24-social-inbox-triage.streamlit.app/" target="_blank" style="color:#6c63ff;text-decoration:none;font-weight:700;">Social Inbox Triage</a>
+    <div class="badge">Designed for high-volume ticket triage and fast resolution</div>
+    <div class="pos-line">
+        "Built from handling real support tickets — focused on faster triage, clearer responses, and fewer repeat issues."
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
-
-# ── Header ────────────────────────────────────────────────────────────────────
-st.markdown('<div class="badge">⬤ &nbsp;Support Tooling Demo</div>', unsafe_allow_html=True)
-st.markdown("## Reducing **repeated** support issues")
-st.markdown(
-    "Tools I built to stop handling the same support issues twice — "
-    "pattern detection, root cause analysis, and ticket routing."
-)
-
-st.markdown("---")
-st.markdown("### Try it instantly")
-st.markdown("Both tools are pre-filled. Edit the input to test your own.")
+# ── Navigation (Workflow Signal) ─────────────────────────────────────────────
+st.markdown(f"""
+<div style="font-size:12px;color:#8b8fa8;margin-bottom:24px;">
+    Workflow: Deployment Debugger → Support Gatekeeper → <a href="https://sefket24-social-inbox-triage.streamlit.app/" target="_blank" style="color:#6c63ff;text-decoration:none;font-weight:700;">Social Inbox Triage</a>
+</div>
+""", unsafe_allow_html=True)
 
 # ── Deployment Debugger ───────────────────────────────────────────────────────
 st.markdown("#### 🔍 Deployment Debugger")
-st.caption("Scans deployment errors for known failure patterns and surfaces the root cause.")
-st.markdown('<p style="font-size:12px;color:#8b8fa8;margin:-8px 0 8px;">Best with real error messages or logs</p>', unsafe_allow_html=True)
+st.caption("Pattern-matching for instant root cause analysis.")
 
 debugger_input = st.text_area(
-    "Paste a specific error or log message",
+    "Paste error/log",
+    value="Deployment fails: no process listening on $PORT",
     key="debugger_input",
-    placeholder="Example: Deployment fails: no process listening on $PORT",
-    height=80,
+    height=70,
 )
 
-if _is_vague(debugger_input):
-    st.markdown(_VAGUE_HTML, unsafe_allow_html=True)
-else:
-    result = analyze_deployment(debugger_input)
-    if result:
-        st.markdown(f"""
-        <div class="result-box">
-            <div class="result-label">Detected issue</div>
-            <div style="font-size:15px;font-weight:600;color:#e8e9f0;margin-bottom:12px;">{result['issue']}</div>
-            <div class="result-label">Root cause</div>
-            <div style="font-size:14px;color:#c4c6d6;margin-bottom:12px;line-height:1.6;">{result['root_cause']}</div>
-            <div class="result-label">Suggested fix</div>
-            <div style="font-size:14px;color:#c4c6d6;line-height:1.6;">{result['fix']}</div>
+res = analyze_deployment(debugger_input)
+if res:
+    st.markdown(f"""
+    <div class="result-box">
+        <div style="display:flex; justify-content:space-between; align-items:start;">
+            <div><div class="result-label">Issue</div><div style="font-size:14px;font-weight:600;color:#e8e9f0;">{res['issue']}</div></div>
+            <div style="text-align:right;"><div class="result-label">Resolution</div><div style="font-size:11px;color:#fb923c;font-weight:700;">{res['fix_time']}</div></div>
         </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(_VAGUE_HTML, unsafe_allow_html=True)
+        <div style="margin-top:10px;"><div class="result-label">Pattern</div><div style="font-size:12px;color:#c4c6d6;">{res['pattern']}</div></div>
+        <div style="margin-top:10px;"><div class="result-label">Suggested Response</div><div style="font-size:13px;color:#f7f9f9;font-style:italic;">"{res['suggested_response']}"</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown('<div class="result-box"><div style="font-size:12px;color:#8b8fa8;">Paste a deployment log to start analysis.</div></div>', unsafe_allow_html=True)
 
-st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ── Support Gatekeeper ────────────────────────────────────────────────────────
 st.markdown("#### 🛡 Support Gatekeeper")
-st.caption("Classifies incoming tickets and recommends the right next step.")
+st.caption("Classifies tickets and pre-drafts agent responses.")
 
 gatekeeper_input = st.text_area(
-    "Paste a support message",
+    "Paste support message",
+    value="Enterprise customer here — I'm being double charged for my seat and need a refund.",
     key="gatekeeper_input",
-    placeholder="Example: My app isn't working",
-    height=80,
+    height=70,
 )
 
 cls = classify_ticket(gatekeeper_input)
 st.markdown(f"""
 <div class="result-box">
-    <div class="result-label">Classification &nbsp;<span class="tag {cls['tag_class']}">{cls['classification']}</span></div>
-    <div style="margin-top:10px;" class="result-label">Recommended next step</div>
-    <div style="font-size:14px;color:#c4c6d6;line-height:1.6;margin-top:4px;">{cls['next_step']}</div>
-</div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div><div class="result-label">Classification</div><span class="tag {cls['tag_class']}">{cls['classification']}</span></div>
+        <div style="text-align:right;"><div class="result-label">Pattern</div><div style="font-size:11px;color:#c4c6d6;">{cls['pattern']}</div></div>
+    </div>
+    <div style="margin-top:12px;"><div class="result-label">Next step</div><div style="font-size:13px;color:#c4c6d6;">{cls['next_step']}</div></div>
+    <div style="margin-top:12px;"><div class="result-label">Agent response</div><div style="font-size:13px;color:#f7f9f9;font-style:italic;">"{cls['agent_response']}"</div></div>
 """, unsafe_allow_html=True)
 
-# ── Debug panel ──────────────────────────────────────────────────────────────
-if DEBUG:
-    vd = st.session_state.get("visit_data", {})
-    total = vd.get("visits", "n/a")
-    recent = vd.get("timestamps", [])[-10:][::-1]
-    st.markdown("---")
-    st.markdown(
-        f'<p style="font-size:11px;color:#555;margin-bottom:4px;">Visits (file): <strong>{total}</strong> &nbsp;·&nbsp; '
-        f'Session visits: <strong>{st.session_state.get("session_visits", 1)}</strong></p>',
-        unsafe_allow_html=True,
-    )
-    if recent:
-        lines = "".join(f"<li>{ts}</li>" for ts in recent)
-        st.markdown(
-            f'<ul style="font-size:11px;color:#777;margin:0;padding-left:16px;">{lines}</ul>',
-            unsafe_allow_html=True,
-        )
+if cls['esc_details']:
+    st.markdown(f"""
+    <div class="escalation-grid">
+        <div class="esc-stat"><div class="esc-label">Team</div><div class="esc-val">{cls['esc_details']['team']}</div></div>
+        <div class="esc-stat"><div class="esc-label">Tool</div><div class="esc-val">{cls['esc_details']['tool']}</div></div>
+        <div class="esc-stat"><div class="esc-label">Priority</div><div class="esc-val" style="color:#f87171;">{cls['esc_details']['priority']}</div></div>
+    </div>
+    <div style="margin-top:10px;"><div class="result-label">Internal Note</div><div style="font-size:11px;color:#8b8fa8;font-style:italic;">{cls['esc_details']['note']}</div></div>
+    """, unsafe_allow_html=True)
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # ── Footer ────────────────────────────────────────────────────────────────────
-st.markdown("---")
-st.markdown("""
-<div class="footer">
-    <strong style="color:#e8e9f0;">Sefket Nouri</strong> — Support Specialist<br>
-    Focused on reducing repeat support issues through tooling and systems thinking<br>
-    <span style="font-size:12px;">
-        <a href="https://www.linkedin.com/in/sefketnouri" style="color:#6c63ff;text-decoration:none;">LinkedIn</a>
-        &nbsp;·&nbsp;
-        <a href="https://replit.com/@sefket24" style="color:#6c63ff;text-decoration:none;">View implementation on Replit</a>
-    </span>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("<br><center style='font-size:11px;color:#555;'>Built for high-velocity Support Operations • instant triage</center>", unsafe_allow_html=True)
