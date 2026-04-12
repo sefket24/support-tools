@@ -183,21 +183,18 @@ _VAGUE_HTML = """
 st.markdown("""
 <div style="margin-bottom:28px;line-height:1.5;">
     <div style="font-size:22px;font-weight:600;color:#000000;margin-bottom:10px;letter-spacing:-0.01em;">Sefket Nouri</div>
-    <div style="font-size:14px;font-weight:400;color:#8b8fa8;margin-bottom:4px;">Replit Support Specialist candidate</div>
-    <div style="font-size:13px;color:#8b8fa8;margin-bottom:12px;">
-        <a href="mailto:me@sefketnouri.com" style="color:#6c63ff;text-decoration:none;">Email</a>
-        <span style="margin:0 6px;color:#3a3d50;">·</span>
-        <a href="https://www.linkedin.com/in/sefketnouri/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;">LinkedIn</a>
-        <span style="margin:0 6px;color:#3a3d50;">·</span>
-        <a href="https://sefket24-support-tools-app-zwaemo.streamlit.app/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;">App</a>
-        <span style="margin:0 6px;color:#3a3d50;">·</span>
-        <a href="https://replit.com/@sefketnouri" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;">Replit</a>
+    <div style="font-size:14px;font-weight:400;color:#8b8fa8;margin-bottom:4px;"><a href="https://replit.com/" target="_blank" style="color:#8b8fa8;text-decoration:none;">Replit</a> Social Media Support Specialist candidate</div>
+    <div style="font-size:13px;color:#8b8fa8;margin-bottom:12px;display:flex;gap:12px;">
+        <a href="mailto:me@sefketnouri.com" style="color:#6c63ff;text-decoration:none;border-bottom:1px solid rgba(108,99,255,0.3);">me@sefketnouri.com</a>
+        <a href="https://www.linkedin.com/in/sefketnouri/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;border-bottom:1px solid rgba(108,99,255,0.3);">LinkedIn</a>
+        <a href="https://sefket24-support-tools-app-zwaemo.streamlit.app/" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;border-bottom:1px solid rgba(108,99,255,0.3);">App</a>
+        <a href="https://replit.com/@sefketnouri" target="_blank" rel="noopener" style="color:#6c63ff;text-decoration:none;border-bottom:1px solid rgba(108,99,255,0.3);">Replit</a>
     </div>
     <div style="font-size:13px;font-weight:400;color:#8b8fa8;margin-bottom:6px;">
         I built these tools to reduce support friction across deployment, billing, and triage
     </div>
     <div style="font-size:13px;font-weight:500;color:#a0a4c0;">
-        Start with: Deployment Debugger → Support Gatekeeper → (new tool)
+        Workflow: Deployment Debugger → Support Gatekeeper → <a href="https://sefket24-social-inbox-triage.streamlit.app/" target="_blank" style="color:#6c63ff;text-decoration:none;font-weight:700;">Social Inbox Triage</a>
     </div>
 </div>
 """, unsafe_allow_html=True)
