@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 DEBUG = False
 VISITS_FILE = "visits.json"
 
-# ── Visit tracking (once per session, not per rerun) ─────────────────────────
+# ── Visit tracking ───────────────────────────────────────────────────────────
 def _load_visits():
     try:
         if os.path.exists(VISITS_FILE):
@@ -36,7 +36,7 @@ if "visit_counted" not in st.session_state:
     data = _load_visits()
     data["visits"] += 1
     data["timestamps"].append(datetime.now(timezone.utc).isoformat())
-    data["timestamps"] = data["timestamps"][-50:]  # keep last 50
+    data["timestamps"] = data["timestamps"][-50:]
     _save_visits(data)
     st.session_state["visit_data"] = data
 else:
@@ -49,6 +49,22 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@500;700&display=swap');
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
+
+/* Link styling matching Social Inbox Triage */
+.contact-links { font-size: 13px; color: #8b8fa8; display: flex; gap: 12px; margin-bottom: 12px; }
+.contact-links a { 
+    color: #6c63ff; 
+    text-decoration: none; 
+    border-bottom: 1px solid rgba(108,99,255,0.3); 
+    padding-bottom: 1px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.contact-links a:hover { 
+    color: #a78bfa; 
+    border-bottom-color: #a78bfa;
+    opacity: 0.9;
+}
 
 .badge {
     display: inline-block;
@@ -91,21 +107,13 @@ h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
 .esc-label { font-size: 8px; color: #8b8fa8; text-transform: uppercase; }
 .esc-val { font-size: 11px; font-weight: 700; color: #e8e9f0; }
 
-.footer { text-align: center; font-size: 13px; color: #8b8fa8; margin-top: 40px; line-height: 1.8; }
-
-/* Positioning line */
 .pos-line {
-    font-size: 12px;
-    color: #a0a4c0;
-    font-style: italic;
-    border-left: 2px solid #6c63ff;
-    padding-left: 10px;
-    margin: 20px 0;
+    font-size: 12px; color: #a0a4c0; font-style: italic;
+    border-left: 2px solid #6c63ff; padding-left: 10px; margin: 20px 0;
 }
 
 @media (max-width: 480px) {
     .result-box { padding: 12px 14px; }
-    h2 { font-size: 22px !important; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -146,25 +154,22 @@ def classify_ticket(text: str):
     t = text.lower()
     if any(w in t for w in ["enterprise", "billing", "refund", "breach", "outage"]):
         return {
-            "tag_class": "tag-esc", 
-            "classification": "Escalate",
+            "tag_class": "tag-esc", "classification": "Escalate",
             "pattern": "High-priority business risk",
             "next_step": "Route to Tier 2 Engineering queue (Linear).",
             "agent_response": "Got it — I’m escalating this to our engineering team and will follow up.",
-            "esc_details": {"team": "Engineering", "tool": "Linear", "priority": "High", "note": "Priority issue detected in social inbox."}
+            "esc_details": {"team": "Engineering", "tool": "Linear", "priority": "High", "note": "Priority issue detected in support triage."}
         }
     if any(w in t for w in ["how to", "where is", "forgot password", "reset"]):
         return {
-            "tag_class": "tag-dup", 
-            "classification": "Self-serve / Doc link",
+            "tag_class": "tag-dup", "classification": "Self-serve / Doc link",
             "pattern": "Common account access question",
             "next_step": "Auto-populate with help center article link.",
             "agent_response": "You can do this here: [help.replit.com] — let me know if you run into any issues.",
             "esc_details": None
         }
     return {
-        "tag_class": "tag-self", 
-        "classification": "Standard Support",
+        "tag_class": "tag-self", "classification": "Standard Support",
         "pattern": "General technical query",
         "next_step": "Review logs and provide structured response.",
         "agent_response": "Hey — that shouldn't happen. Can you share a bit more detail so I can help figure this out?",
@@ -175,9 +180,11 @@ def classify_ticket(text: str):
 st.markdown("""
 <div style="margin-bottom:20px;line-height:1.4;">
     <div style="font-size:22px;font-weight:700;color:#e8e9f0;margin-bottom:6px;">Sefket Nouri</div>
-    <div style="font-size:13px;color:#8b8fa8;margin-bottom:12px;display:flex;gap:12px;">
-        <a href="mailto:me@sefketnouri.com" style="color:#6c63ff;text-decoration:none;">me@sefketnouri.com</a>
-        <a href="https://www.linkedin.com/in/sefketnouri/" style="color:#6c63ff;text-decoration:none;">LinkedIn</a>
+    <div class="contact-links">
+        <a href="mailto:me@sefketnouri.com">me@sefketnouri.com</a>
+        <a href="https://www.linkedin.com/in/sefketnouri/" target="_blank">LinkedIn</a>
+        <a href="https://sefket24-support-tools-app-zwaemo.streamlit.app/" target="_blank">App</a>
+        <a href="https://replit.com/@sefketnouri" target="_blank">Replit</a>
     </div>
     <div class="badge">Designed for high-volume ticket triage and fast resolution</div>
     <div class="pos-line">
@@ -186,22 +193,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Navigation (Workflow Signal) ─────────────────────────────────────────────
-st.markdown(f"""
-<div style="font-size:12px;color:#8b8fa8;margin-bottom:24px;">
-    Workflow: Deployment Debugger → Support Gatekeeper → <a href="https://sefket24-social-inbox-triage.streamlit.app/" target="_blank" style="color:#6c63ff;text-decoration:none;font-weight:700;">Social Inbox Triage</a>
-</div>
-""", unsafe_allow_html=True)
-
 # ── Deployment Debugger ───────────────────────────────────────────────────────
 st.markdown("#### 🔍 Deployment Debugger")
 st.caption("Pattern-matching for instant root cause analysis.")
 
 debugger_input = st.text_area(
-    "Paste error/log",
-    value="Deployment fails: no process listening on $PORT",
-    key="debugger_input",
-    height=70,
+    "Paste error/log", value="Deployment fails: no process listening on $PORT",
+    key="debugger_input", height=70,
 )
 
 res = analyze_deployment(debugger_input)
@@ -228,8 +226,7 @@ st.caption("Classifies tickets and pre-drafts agent responses.")
 gatekeeper_input = st.text_area(
     "Paste support message",
     value="Enterprise customer here — I'm being double charged for my seat and need a refund.",
-    key="gatekeeper_input",
-    height=70,
+    key="gatekeeper_input", height=70,
 )
 
 cls = classify_ticket(gatekeeper_input)
