@@ -194,7 +194,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown(
-    "This tool mirrors how I approach Support Operations in a live environment: built in Replit, version-controlled in GitHub, and deployed via Streamlit Cloud to debug issues, triage requests, and reduce engineering overhead."
+    "Built to debug failed deployments, triage support issues, and reduce engineering handoffs—using a workflow aligned with how Replit operates."
 )
 
 
