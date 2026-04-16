@@ -197,6 +197,16 @@ st.markdown(
     "Built to debug failed deployments, triage support issues, and reduce engineering handoffs—using a workflow aligned with how Replit operates."
 )
 
+st.subheader("Example Workflow")
+
+st.markdown(
+    "Failed deployment → identify root cause → suggest fix\n\n"
+    "**Example:** Missing environment variable causing build failure.\n"
+    "→ Surface error\n"
+    "→ Explain issue in plain terms\n"
+    "→ Recommend fix"
+)
+
 
 # ── Deployment Debugger ───────────────────────────────────────────────────────
 st.markdown("#### 🔍 Deployment Debugger")
