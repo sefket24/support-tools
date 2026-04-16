@@ -193,6 +193,11 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+st.markdown(
+    "This tool mirrors how I approach Support Operations in a live environment: built in Replit, version-controlled in GitHub, and deployed via Streamlit Cloud to debug issues, triage requests, and reduce engineering overhead."
+)
+
+
 # ── Deployment Debugger ───────────────────────────────────────────────────────
 st.markdown("#### 🔍 Deployment Debugger")
 st.caption("Pattern-matching for instant root cause analysis.")
