@@ -2,270 +2,162 @@ import streamlit as st
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 
-# ── Config ────────────────────────────────────────────────────────────────────
-DEBUG = False
-VISITS_FILE = "visits.json"
+# ── Page Config ──────────────────────────────────────────────────────────────
+st.set_page_config(page_title="Support Tools | Traceable Mode", page_icon="🛠", layout="centered")
 
-# ── Visit tracking ───────────────────────────────────────────────────────────
-def _load_visits():
-    try:
-        if os.path.exists(VISITS_FILE):
-            with open(VISITS_FILE) as f:
-                data = json.load(f)
-            if "visits" not in data or "timestamps" not in data:
-                raise ValueError
-            return data
-    except Exception:
-        pass
-    return {"visits": 0, "timestamps": []}
+# ── Session State Init (Step 7) ──────────────────────────────────────────────
+if "dbg_result" not in st.session_state:
+    st.session_state.dbg_result = None
+if "gate_result" not in st.session_state:
+    st.session_state.gate_result = None
 
-def _save_visits(data):
-    try:
-        with open(VISITS_FILE, "w") as f:
-            json.dump(data, f)
-    except Exception:
-        pass 
-
-if "visit_counted" not in st.session_state:
-    st.session_state["visit_counted"] = True
-    st.session_state.setdefault("session_visits", 0)
-    st.session_state["session_visits"] += 1
-
-    data = _load_visits()
-    data["visits"] += 1
-    data["timestamps"].append(datetime.now(timezone.utc).isoformat())
-    data["timestamps"] = data["timestamps"][-50:]
-    _save_visits(data)
-    st.session_state["visit_data"] = data
-else:
-    st.session_state["visit_data"] = _load_visits()
-
-st.set_page_config(page_title="Support Tools", page_icon="🛠", layout="centered")
-
+# ── Styles ────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@500;700&display=swap');
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
-
-/* Link styling matching Social Inbox Triage */
-.contact-links { font-size: 13px; color: #8b8fa8; display: flex; gap: 12px; margin-bottom: 12px; }
-.contact-links a { 
-    color: #6c63ff; 
-    text-decoration: none; 
-    border-bottom: 1px solid rgba(108,99,255,0.3); 
-    padding-bottom: 1px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-.contact-links a:hover { 
-    color: #a78bfa; 
-    border-bottom-color: #a78bfa;
-    opacity: 0.9;
-}
-
-.badge {
-    display: inline-block;
-    font-size: 10px; font-weight: 700; letter-spacing: .08em;
-    text-transform: uppercase; color: #6c63ff;
-    background: rgba(108,99,255,.12);
-    border: 1px solid rgba(108,99,255,.25);
-    border-radius: 20px; padding: 4px 12px; margin-bottom: 16px;
-}
 .result-box {
     background: rgba(108,99,255,.08);
     border: 1px solid rgba(108,99,255,.25);
     border-radius: 10px; padding: 16px 18px; margin-top: 12px;
 }
-.result-label {
-    font-size: 10px; font-weight: 700; letter-spacing: .1em;
-    text-transform: uppercase; color: #6c63ff; margin-bottom: 6px;
-}
-.tag {
-    font-size: 10px; font-weight: 700; padding: 2px 8px;
-    border-radius: 4px; text-transform: uppercase; letter-spacing: .05em;
-}
-.tag-esc   { background: rgba(239,68,68,.12); color: #f87171; }
-.tag-dup   { background: rgba(251,146,60,.12); color: #fb923c; }
-.tag-self  { background: rgba(34,197,94,.12);  color: #4ade80; }
-.tag-vague { background: rgba(108,99,255,.12); color: #a78bfa; }
-
-.escalation-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-top: 10px;
-}
-.esc-stat {
-    background: rgba(0,0,0,0.2);
-    padding: 8px;
-    border-radius: 6px;
-    text-align: center;
-}
-.esc-label { font-size: 8px; color: #8b8fa8; text-transform: uppercase; }
-.esc-val { font-size: 11px; font-weight: 700; color: #e8e9f0; }
-
-.pos-line {
-    font-size: 12px; color: #a0a4c0; font-style: italic;
-    border-left: 2px solid #6c63ff; padding-left: 10px; margin: 20px 0;
-}
-
-@media (max-width: 480px) {
-    .result-box { padding: 12px 14px; }
+.debug-log {
+    background: #1e1e1e; color: #00ff00; font-family: monospace; 
+    font-size: 11px; padding: 10px; border-radius: 5px; margin-bottom: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Logic functions ───────────────────────────────────────────────────────────
+# ── Logic ─────────────────────────────────────────────────────────────────────
+
 def analyze_deployment(text: str):
     t = text.lower()
-    if "$port" in t or ("port" in t and ("listen" in t or "bind" in t or "process" in t)):
+    # Pattern matching
+    if re.search(r"EADDRINUSE|listen.*:(3000|8080|8000|4000|5000)|hardcoded.*port", text, re.I):
         return {
             "issue": "Port binding failure",
-            "root_cause": "The app is not binding to the required $PORT environment variable assigned by the platform.",
-            "pattern": "Common runtime port error",
-            "fix_time": "2–5 minutes",
-            "suggested_response": "Looks like your app isn’t listening on the required port. Make sure your server is running on $PORT and try redeploying.",
-            "fix": "Set your server to listen on `process.env.PORT` (Node) or `int(os.environ['PORT'])` (Python)."
+            "cause": "Another process is using the port or the app is not using $PORT.",
+            "fix": "Use process.env.PORT and bind to 0.0.0.0.",
         }
-    if "oomkilled" in t or ("memory" in t and "limit" in t):
-        return {
-            "issue": "Memory limit exceeded (OOMKilled)",
-            "root_cause": "Container hit its memory ceiling during runtime dependency load or memory leak.",
-            "pattern": "Recurring deployment memory issue",
-            "fix_time": "5–10 minutes",
-            "suggested_response": "Your app hit a memory limit during startup. Try increasing the memory allowance in your config or lazy-loading heavy libs.",
-            "fix": "Increase the container memory limit or optimize dependency loading."
-        }
-    if "timeout" in t or "timed out" in t:
-        return {
-            "issue": "Deployment timeout",
-            "root_cause": "Startup exceeded the platform window. App likely doing blocking work before server bind.",
-            "pattern": "Startup timeout pattern",
-            "fix_time": "Requires deeper investigation",
-            "suggested_response": "The deployment timed out because the app took too long to start. Try starting the server before loading heavy assets.",
-            "fix": "Start the HTTP server first, then initialise resources asynchronously."
-        }
-    return None
+    return {
+        "issue": "Unrecognized Log Pattern",
+        "cause": "Manual review required.",
+        "fix": "Check for application-level logic errors.",
+    }
 
 def classify_ticket(text: str):
     t = text.lower()
-    if any(w in t for w in ["enterprise", "billing", "refund", "breach", "outage"]):
+    if any(w in t for w in ["enterprise", "billing", "billed", "charge", "refund", "breach", "outage"]):
         return {
-            "tag_class": "tag-esc", "classification": "Escalate",
-            "pattern": "High-priority business risk",
-            "next_step": "Route to Tier 2 Engineering queue (Linear).",
-            "agent_response": "Got it — I’m escalating this to our engineering team and will follow up.",
-            "esc_details": {"team": "Engineering", "tool": "Linear", "priority": "High", "note": "Priority issue detected in support triage."}
-        }
-    if any(w in t for w in ["how to", "where is", "forgot password", "reset"]):
-        return {
-            "tag_class": "tag-dup", "classification": "Self-serve / Doc link",
-            "pattern": "Common account access question",
-            "next_step": "Auto-populate with help center article link.",
-            "agent_response": "You can do this here: [help.replit.com] — let me know if you run into any issues.",
-            "esc_details": None
+            "classification": "Escalate (High Priority)",
+            "type": "Billing / Business Risk",
+            "next_step": "Route to Tier 2 Engineering.",
         }
     return {
-        "tag_class": "tag-self", "classification": "Standard Support",
-        "pattern": "General technical query",
-        "next_step": "Review logs and provide structured response.",
-        "agent_response": "Hey — that shouldn't happen. Can you share a bit more detail so I can help figure this out?",
-        "esc_details": None
+        "classification": "Standard Support",
+        "type": "General Inquiry",
+        "next_step": "Provide structured response.",
     }
 
-# ── Identity header ──────────────────────────────────────────────────────────
-st.markdown("""
-<div style="margin-bottom:20px;line-height:1.4;">
-    <div style="font-size:22px;font-weight:700;color:#e8e9f0;margin-bottom:6px;">Sefket Nouri</div>
-    <div class="contact-links">
-        <a href="mailto:me@sefketnouri.com">me@sefketnouri.com</a>
-        <a href="https://www.linkedin.com/in/sefketnouri/" target="_blank">LinkedIn</a>
-        <a href="https://sefket24-support-tools-app-zwaemo.streamlit.app/" target="_blank">App</a>
-        <a href="https://replit.com/@sefketnouri" target="_blank">Replit</a>
-    </div>
-    <div class="badge">Designed for high-volume ticket triage and fast resolution</div>
-    <div class="pos-line">
-        "Built from handling real support tickets — focused on faster triage, clearer responses, and fewer repeat issues."
-    </div>
-</div>
-""", unsafe_allow_html=True)
+def run_analysis(tool_type, input_text):
+    # Step 4: Standardize output contract
+    if input_text == "debug_test":
+        return {
+            "status": "success",
+            "data": {"message": "State Management Working", "timestamp": datetime.now().isoformat()},
+            "message": "Debug test executed"
+        }
 
-st.markdown(
-    "Built to debug failed deployments, triage support issues, and reduce engineering handoffs—using a workflow aligned with how Replit operates."
-)
+    # Step 6: Remove try/except to let errors surface
+    if tool_type == "debugger":
+        res_data = analyze_deployment(input_text)
+        status = "success" if "Unrecognized" not in res_data["issue"] else "fallback"
+    else:
+        res_data = classify_ticket(input_text)
+        status = "success"
 
-st.subheader("Example Workflow")
+    return {
+        "status": status,
+        "data": res_data,
+        "message": f"Analysis complete at {datetime.now().strftime('%H:%M:%S')}"
+    }
 
-st.markdown(
-    "Failed deployment → identify root cause → suggest fix\n\n"
-    "**Example:** Missing environment variable causing build failure.\n"
-    "→ Surface error\n"
-    "→ Explain issue in plain terms\n"
-    "→ Recommend fix"
-)
+def render_result(tool_type, result):
+    # Step 5: Fix render_result() to handle all statuses and always display
+    if not result:
+        st.warning("DEBUG: render_result called with empty result")
+        return
 
+    st.write("### Analysis Results")
+    st.write(f"**Status:** {result['status'].upper()}")
+    
+    with st.container():
+        st.markdown('<div class="result-box">', unsafe_allow_html=True)
+        
+        # Always display something (Step 5)
+        data = result.get("data", {})
+        if not data:
+            st.write("No detailed data returned.")
+        else:
+            for key, val in data.items():
+                st.write(f"**{key.replace('_', ' ').title()}:** {val}")
+        
+        if result.get("message"):
+            st.caption(result["message"])
+            
+        st.markdown("</div>", unsafe_allow_html=True)
 
-# ── Deployment Debugger ───────────────────────────────────────────────────────
-st.markdown("#### 🔍 Deployment Debugger")
-st.caption("Pattern-matching for instant root cause analysis.")
+# ── Main UI ───────────────────────────────────────────────────────────────────
 
-debugger_input = st.text_area(
-    "Paste error/log", value="Deployment fails: no process listening on $PORT",
-    key="debugger_input", height=70,
-)
+st.title("TRACE MODE V2 - April 16")
+st.markdown("## Replit Support Tools")
 
-res = analyze_deployment(debugger_input)
-if res:
-    st.markdown(f"""
-    <div class="result-box">
-        <div style="display:flex; justify-content:space-between; align-items:start;">
-            <div><div class="result-label">Issue</div><div style="font-size:14px;font-weight:600;color:#e8e9f0;">{res['issue']}</div></div>
-            <div style="text-align:right;"><div class="result-label">Resolution</div><div style="font-size:11px;color:#fb923c;font-weight:700;">{res['fix_time']}</div></div>
-        </div>
-        <div style="margin-top:10px;"><div class="result-label">Pattern</div><div style="font-size:12px;color:#c4c6d6;">{res['pattern']}</div></div>
-        <div style="margin-top:10px;"><div class="result-label">Suggested Response</div><div style="font-size:13px;color:#f7f9f9;font-style:italic;">"{res['suggested_response']}"</div></div>
-    </div>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown('<div class="result-box"><div style="font-size:12px;color:#8b8fa8;">Paste a deployment log to start analysis.</div></div>', unsafe_allow_html=True)
+# 1. Debugger Section
+st.subheader("🔍 Deployment Debugger")
+dbg_input = st.text_area("Deployment logs", key="dbg_input", height=100, 
+                         value="Error: listen EADDRINUSE: address already in use :::3000")
 
-st.markdown("<br>", unsafe_allow_html=True)
+if st.button("Diagnose Error", key="debugger_btn"):
+    # Step 1: Confirm execution path
+    st.markdown('<div class="debug-log">DEBUG: Debugger Button clicked</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="debug-log">DEBUG INPUT: {dbg_input[:50]}...</div>', unsafe_allow_html=True)
+    
+    # Step 2: Force render test (visual confirmation)
+    st.success("Test: run_analysis() triggered")
+    
+    # Run and save to session state (Step 7)
+    st.session_state.dbg_result = run_analysis("debugger", dbg_input)
+    
+    # Step 3: Print raw output
+    st.write("**RAW RESULT:**", st.session_state.dbg_result)
 
-# ── Support Gatekeeper ────────────────────────────────────────────────────────
-st.markdown("#### 🛡 Support Gatekeeper")
-st.caption("Classifies tickets and pre-drafts agent responses.")
+if st.session_state.dbg_result:
+    render_result("debugger", st.session_state.dbg_result)
 
-gatekeeper_input = st.text_area(
-    "Paste support message",
-    value="Enterprise customer here — I'm being double charged for my seat and need a refund.",
-    key="gatekeeper_input", height=70,
-)
+st.divider()
 
-cls = classify_ticket(gatekeeper_input)
-st.markdown(f"""
-<div class="result-box">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div><div class="result-label">Classification</div><span class="tag {cls['tag_class']}">{cls['classification']}</span></div>
-        <div style="text-align:right;"><div class="result-label">Pattern</div><div style="font-size:11px;color:#c4c6d6;">{cls['pattern']}</div></div>
-    </div>
-    <div style="margin-top:12px;"><div class="result-label">Next step</div><div style="font-size:13px;color:#c4c6d6;">{cls['next_step']}</div></div>
-    <div style="margin-top:12px;"><div class="result-label">Agent response</div><div style="font-size:13px;color:#f7f9f9;font-style:italic;">"{cls['agent_response']}"</div></div>
-""", unsafe_allow_html=True)
+# 2. Gatekeeper Section
+st.subheader("🛡 Support Gatekeeper")
+gate_input = st.text_area("Support message", key="gate_input", height=100, 
+                          value="Enterprise customer here — I'm being double charged for my seat and need a refund.")
 
-if cls['esc_details']:
-    st.markdown(f"""
-    <div class="escalation-grid">
-        <div class="esc-stat"><div class="esc-label">Team</div><div class="esc-val">{cls['esc_details']['team']}</div></div>
-        <div class="esc-stat"><div class="esc-label">Tool</div><div class="esc-val">{cls['esc_details']['tool']}</div></div>
-        <div class="esc-stat"><div class="esc-label">Priority</div><div class="esc-val" style="color:#f87171;">{cls['esc_details']['priority']}</div></div>
-    </div>
-    <div style="margin-top:10px;"><div class="result-label">Internal Note</div><div style="font-size:11px;color:#8b8fa8;font-style:italic;">{cls['esc_details']['note']}</div></div>
-    """, unsafe_allow_html=True)
+if st.button("Triage Ticket", key="gatekeeper_btn"):
+    # Step 1: Confirm execution path
+    st.markdown('<div class="debug-log">DEBUG: Gatekeeper Button clicked</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="debug-log">DEBUG INPUT: {gate_input[:50]}...</div>', unsafe_allow_html=True)
+    
+    st.success("Test: run_analysis() triggered")
+    
+    st.session_state.gate_result = run_analysis("gatekeeper", gate_input)
+    
+    # Step 3: Print raw output
+    st.write("**RAW RESULT:**", st.session_state.gate_result)
 
-st.markdown("</div>", unsafe_allow_html=True)
+if st.session_state.gate_result:
+    render_result("gatekeeper", st.session_state.gate_result)
 
 # ── Footer ────────────────────────────────────────────────────────────────────
-st.markdown("<br><center style='font-size:11px;color:#555;'>Built for high-velocity Support Operations • instant triage</center>", unsafe_allow_html=True)
+st.markdown("<br><hr><center style='font-size:11px;color:#555;'>System Trace Mode v1.4</center>", unsafe_allow_html=True)
