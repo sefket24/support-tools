@@ -78,6 +78,7 @@ h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
     background: rgba(108,99,255,.08);
     border: 1px solid rgba(108,99,255,.25);
     border-radius: 10px; padding: 16px 18px; margin-top: 12px;
+    color: #1f2937;
 }
 .result-label {
     font-size: 10px; font-weight: 700; letter-spacing: .1em;
@@ -241,19 +242,19 @@ if debugger_input:
         st.markdown(f"""
         <div class="result-box">
             <div style="display:flex; justify-content:space-between; align-items:start;">
-                <div><div class="result-label">Issue</div><div style="font-size:14px;font-weight:600;color:#e8e9f0;">{data['issue']}</div></div>
+                <div><div class="result-label">Issue</div><div style="font-size:14px;font-weight:600;color:#1f2937;">{data['issue']}</div></div>
                 <div style="text-align:right;"><div class="result-label">Resolution</div><div style="font-size:11px;color:#fb923c;font-weight:700;">2-5 mins</div></div>
             </div>
-            <div style="margin-top:10px;"><div class="result-label">Cause</div><div style="font-size:12px;color:#c4c6d6;">{data['cause']}</div></div>
-            <div style="margin-top:10px;"><div class="result-label">Recommended Fix</div><div style="font-size:13px;color:#f7f9f9;font-style:italic;">{data['fix']}</div></div>
+            <div style="margin-top:10px;"><div class="result-label">Cause</div><div style="font-size:12px;color:#1f2937;">{data['cause']}</div></div>
+            <div style="margin-top:10px;"><div class="result-label">Recommended Fix</div><div style="font-size:13px;color:#1f2937;font-style:italic;">{data['fix']}</div></div>
         </div>
         """, unsafe_allow_html=True)
     elif res["status"] == "fallback":
-        st.markdown(f'<div class="result-box"><div style="font-size:12px;color:#8b8fa8;">{res["message"]}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="result-box"><div style="font-size:12px;color:#1f2937;">{res["message"]}</div></div>', unsafe_allow_html=True)
     elif res["status"] == "error":
         pass # Handle silently or show basic prompt
 else:
-    st.markdown('<div class="result-box"><div style="font-size:12px;color:#8b8fa8;">Paste a deployment log to start analysis.</div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="result-box"><div style="font-size:12px;color:#1f2937;">Paste a deployment log to start analysis.</div></div>', unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -277,12 +278,12 @@ if gatekeeper_input:
                 <div><div class="result-label">Classification</div><span class="tag tag-esc">{data['type']}</span></div>
                 <div style="text-align:right;"><div class="result-label">Priority</div><div style="font-size:11px;color:#f87171;font-weight:700;">{data['priority']}</div></div>
             </div>
-            <div style="margin-top:12px;"><div class="result-label">Reasoning</div><div style="font-size:13px;color:#c4c6d6;">{data['reasoning']}</div></div>
-            <div style="margin-top:12px;"><div class="result-label">Recommended Action</div><div style="font-size:13px;color:#f7f9f9;font-style:italic;">"{data['action']}"</div></div>
+            <div style="margin-top:12px;"><div class="result-label">Reasoning</div><div style="font-size:13px;color:#1f2937;">{data['reasoning']}</div></div>
+            <div style="margin-top:12px;"><div class="result-label">Recommended Action</div><div style="font-size:13px;color:#1f2937;font-style:italic;">{data['action']}</div></div>
         </div>
         """, unsafe_allow_html=True)
     elif cls["status"] == "fallback":
-        st.markdown(f'<div class="result-box"><div style="font-size:12px;color:#8b8fa8;">{cls["message"]}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="result-box"><div style="font-size:12px;color:#1f2937;">{cls["message"]}</div></div>', unsafe_allow_html=True)
 else:
     st.info("Paste a message to begin classification.")
 
