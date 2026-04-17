@@ -119,61 +119,78 @@ h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; }
 """, unsafe_allow_html=True)
 
 # ── Logic functions ───────────────────────────────────────────────────────────
-def analyze_deployment(text: str):
-    t = text.lower()
-    if "$port" in t or ("port" in t and ("listen" in t or "bind" in t or "process" in t)):
-        return {
-            "issue": "Port binding failure",
-            "root_cause": "The app is not binding to the required $PORT environment variable assigned by the platform.",
-            "pattern": "Common runtime port error",
-            "fix_time": "2–5 minutes",
-            "suggested_response": "Looks like your app isn’t listening on the required port. Make sure your server is running on $PORT and try redeploying.",
-            "fix": "Set your server to listen on `process.env.PORT` (Node) or `int(os.environ['PORT'])` (Python)."
-        }
-    if "oomkilled" in t or ("memory" in t and "limit" in t):
-        return {
-            "issue": "Memory limit exceeded (OOMKilled)",
-            "root_cause": "Container hit its memory ceiling during runtime dependency load or memory leak.",
-            "pattern": "Recurring deployment memory issue",
-            "fix_time": "5–10 minutes",
-            "suggested_response": "Your app hit a memory limit during startup. Try increasing the memory allowance in your config or lazy-loading heavy libs.",
-            "fix": "Increase the container memory limit or optimize dependency loading."
-        }
-    if "timeout" in t or "timed out" in t:
-        return {
-            "issue": "Deployment timeout",
-            "root_cause": "Startup exceeded the platform window. App likely doing blocking work before server bind.",
-            "pattern": "Startup timeout pattern",
-            "fix_time": "Requires deeper investigation",
-            "suggested_response": "The deployment timed out because the app took too long to start. Try starting the server before loading heavy assets.",
-            "fix": "Start the HTTP server first, then initialise resources asynchronously."
-        }
-    return None
 
-def classify_ticket(text: str):
-    t = text.lower()
-    if any(w in t for w in ["enterprise", "billing", "refund", "breach", "outage"]):
+def run_analysis(text: str):
+    """Specific logic for analysis - handles both tools."""
+    # Handle empty input
+    if not text or not text.strip():
         return {
-            "tag_class": "tag-esc", "classification": "Escalate",
-            "pattern": "High-priority business risk",
-            "next_step": "Route to Tier 2 Engineering queue (Linear).",
-            "agent_response": "Got it — I’m escalating this to our engineering team and will follow up.",
-            "esc_details": {"team": "Engineering", "tool": "Linear", "priority": "High", "note": "Priority issue detected in support triage."}
+            "status": "error",
+            "message": "No input provided"
         }
-    if any(w in t for w in ["how to", "where is", "forgot password", "reset"]):
+
+    text_lower = text.lower()
+
+    # --- Deployment Debugger ---
+    # Triggered by deployment keywords or EADDRINUSE
+    if "eaddrinuse" in text_lower or (("port" in text_lower or "listen" in text_lower) and "address already in use" in text_lower):
         return {
-            "tag_class": "tag-dup", "classification": "Self-serve / Doc link",
-            "pattern": "Common account access question",
-            "next_step": "Auto-populate with help center article link.",
-            "agent_response": "You can do this here: [help.replit.com] — let me know if you run into any issues.",
-            "esc_details": None
+            "status": "success",
+            "tool": "debugger", # internal flag
+            "data": {
+                "tool": "Deployment Debugger",
+                "issue": "Port already in use",
+                "cause": "Another process is using the same port",
+                "fix": "Kill the process or bind to process.env.PORT"
+            }
         }
+    
+    # Existing patterns for Deployment Debugger
+    if "$port" in text_lower or ("port" in text_lower and ("listen" in text_lower or "bind" in text_lower or "process" in text_lower)):
+        return {
+            "status": "success",
+            "tool": "debugger",
+            "data": {
+                "tool": "Deployment Debugger",
+                "issue": "Port binding failure",
+                "cause": "App not using dynamic $PORT variable.",
+                "fix": "Set server to listen on process.env.PORT."
+            }
+        }
+
+    # --- Support Gatekeeper ---
+    # Triggered by billing keywords or priority support
+    if any(w in text_lower for w in ["bill", "charge", "refund", "overcharged", "billing", "billed"]):
+        return {
+            "status": "success",
+            "tool": "gatekeeper", # internal flag
+            "data": {
+                "tool": "Support Gatekeeper",
+                "priority": "High",
+                "type": "Billing",
+                "reasoning": "User mentions billing issue, indicating potential financial impact",
+                "action": "Escalate to billing team and review account charges"
+            }
+        }
+    
+    # Existing patterns for Support Gatekeeper
+    if any(w in text_lower for w in ["enterprise", "refund", "breach", "outage"]):
+         return {
+            "status": "success",
+            "tool": "gatekeeper",
+            "data": {
+                "tool": "Support Gatekeeper",
+                "priority": "High",
+                "type": "Escalate",
+                "reasoning": "High-priority business risk detected.",
+                "action": "Route to Tier 2 Engineering (Linear)."
+            }
+        }
+
+    # --- Fallback (applies to BOTH tools) ---
     return {
-        "tag_class": "tag-self", "classification": "Standard Support",
-        "pattern": "General technical query",
-        "next_step": "Review logs and provide structured response.",
-        "agent_response": "Hey — that shouldn't happen. Can you share a bit more detail so I can help figure this out?",
-        "esc_details": None
+        "status": "fallback",
+        "message": "Input could not be fully classified, but the system is working and no action is blocked."
     }
 
 # ── Identity header ──────────────────────────────────────────────────────────
@@ -213,22 +230,28 @@ st.markdown("#### 🔍 Deployment Debugger")
 st.caption("Pattern-matching for instant root cause analysis.")
 
 debugger_input = st.text_area(
-    "Paste error/log", value="Deployment fails: no process listening on $PORT",
-    key="debugger_input", height=70,
+    "Paste error/log", key="debugger_input", height=70,
+    placeholder="Paste a deployment log to start analysis..."
 )
 
-res = analyze_deployment(debugger_input)
-if res:
-    st.markdown(f"""
-    <div class="result-box">
-        <div style="display:flex; justify-content:space-between; align-items:start;">
-            <div><div class="result-label">Issue</div><div style="font-size:14px;font-weight:600;color:#e8e9f0;">{res['issue']}</div></div>
-            <div style="text-align:right;"><div class="result-label">Resolution</div><div style="font-size:11px;color:#fb923c;font-weight:700;">{res['fix_time']}</div></div>
+if debugger_input:
+    res = run_analysis(debugger_input)
+    if res["status"] == "success" and res.get("tool") == "debugger":
+        data = res["data"]
+        st.markdown(f"""
+        <div class="result-box">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+                <div><div class="result-label">Issue</div><div style="font-size:14px;font-weight:600;color:#e8e9f0;">{data['issue']}</div></div>
+                <div style="text-align:right;"><div class="result-label">Resolution</div><div style="font-size:11px;color:#fb923c;font-weight:700;">2-5 mins</div></div>
+            </div>
+            <div style="margin-top:10px;"><div class="result-label">Cause</div><div style="font-size:12px;color:#c4c6d6;">{data['cause']}</div></div>
+            <div style="margin-top:10px;"><div class="result-label">Recommended Fix</div><div style="font-size:13px;color:#f7f9f9;font-style:italic;">{data['fix']}</div></div>
         </div>
-        <div style="margin-top:10px;"><div class="result-label">Pattern</div><div style="font-size:12px;color:#c4c6d6;">{res['pattern']}</div></div>
-        <div style="margin-top:10px;"><div class="result-label">Suggested Response</div><div style="font-size:13px;color:#f7f9f9;font-style:italic;">"{res['suggested_response']}"</div></div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    elif res["status"] == "fallback":
+        st.markdown(f'<div class="result-box"><div style="font-size:12px;color:#8b8fa8;">{res["message"]}</div></div>', unsafe_allow_html=True)
+    elif res["status"] == "error":
+        pass # Handle silently or show basic prompt
 else:
     st.markdown('<div class="result-box"><div style="font-size:12px;color:#8b8fa8;">Paste a deployment log to start analysis.</div></div>', unsafe_allow_html=True)
 
@@ -240,32 +263,28 @@ st.caption("Classifies tickets and pre-drafts agent responses.")
 
 gatekeeper_input = st.text_area(
     "Paste support message",
-    value="Enterprise customer here — I'm being double charged for my seat and need a refund.",
     key="gatekeeper_input", height=70,
+    placeholder="Paste a support ticket here..."
 )
 
-cls = classify_ticket(gatekeeper_input)
-st.markdown(f"""
-<div class="result-box">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div><div class="result-label">Classification</div><span class="tag {cls['tag_class']}">{cls['classification']}</span></div>
-        <div style="text-align:right;"><div class="result-label">Pattern</div><div style="font-size:11px;color:#c4c6d6;">{cls['pattern']}</div></div>
-    </div>
-    <div style="margin-top:12px;"><div class="result-label">Next step</div><div style="font-size:13px;color:#c4c6d6;">{cls['next_step']}</div></div>
-    <div style="margin-top:12px;"><div class="result-label">Agent response</div><div style="font-size:13px;color:#f7f9f9;font-style:italic;">"{cls['agent_response']}"</div></div>
-""", unsafe_allow_html=True)
-
-if cls['esc_details']:
-    st.markdown(f"""
-    <div class="escalation-grid">
-        <div class="esc-stat"><div class="esc-label">Team</div><div class="esc-val">{cls['esc_details']['team']}</div></div>
-        <div class="esc-stat"><div class="esc-label">Tool</div><div class="esc-val">{cls['esc_details']['tool']}</div></div>
-        <div class="esc-stat"><div class="esc-label">Priority</div><div class="esc-val" style="color:#f87171;">{cls['esc_details']['priority']}</div></div>
-    </div>
-    <div style="margin-top:10px;"><div class="result-label">Internal Note</div><div style="font-size:11px;color:#8b8fa8;font-style:italic;">{cls['esc_details']['note']}</div></div>
-    """, unsafe_allow_html=True)
-
-st.markdown("</div>", unsafe_allow_html=True)
+if gatekeeper_input:
+    cls = run_analysis(gatekeeper_input)
+    if cls["status"] == "success" and cls.get("tool") == "gatekeeper":
+        data = cls["data"]
+        st.markdown(f"""
+        <div class="result-box">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div><div class="result-label">Classification</div><span class="tag tag-esc">{data['type']}</span></div>
+                <div style="text-align:right;"><div class="result-label">Priority</div><div style="font-size:11px;color:#f87171;font-weight:700;">{data['priority']}</div></div>
+            </div>
+            <div style="margin-top:12px;"><div class="result-label">Reasoning</div><div style="font-size:13px;color:#c4c6d6;">{data['reasoning']}</div></div>
+            <div style="margin-top:12px;"><div class="result-label">Recommended Action</div><div style="font-size:13px;color:#f7f9f9;font-style:italic;">"{data['action']}"</div></div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif cls["status"] == "fallback":
+        st.markdown(f'<div class="result-box"><div style="font-size:12px;color:#8b8fa8;">{cls["message"]}</div></div>', unsafe_allow_html=True)
+else:
+    st.info("Paste a message to begin classification.")
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.markdown("<br><center style='font-size:11px;color:#555;'>Built for high-velocity Support Operations • instant triage</center>", unsafe_allow_html=True)
